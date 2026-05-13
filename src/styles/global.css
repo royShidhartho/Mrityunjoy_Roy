@@ -1,0 +1,351 @@
+/* ============================================================
+   Design tokens — editorial herbarium
+   ============================================================ */
+
+:root {
+  /* — colour: warm aged paper, deep moss accent — */
+  --ground:        #F4EFE4;
+  --ground-deep:   #ECE5D3;
+  --surface:       #FCF8EE;
+  --ink:           #1A1814;
+  --ink-soft:      #4A4238;
+  --ink-muted:     #756B5E;
+  --rule:          #D9CFB8;
+  --rule-soft:     #E8DFC8;
+  --moss:          #3F5C3A;
+  --moss-hover:    #2D4329;
+  --moss-soft:     #C9D5B5;
+  --moss-tint:     #E5EDD8;
+  --rust:          #8B3A22;
+  --rust-soft:     #E8C8B4;
+
+  --selection-bg:  #D5B98A;
+  --selection-fg:  #1A1814;
+
+  /* — type — */
+  --font-en:  "Fraunces", "Iowan Old Style", "Apple Garamond", Garamond, "Cormorant Garamond", Georgia, serif;
+  --font-bn:  "Noto Serif Bengali", "Hind Siliguri", "Lohit Bengali", serif;
+  --font-body: var(--font-en);
+
+  /* type scale (1.25 ratio with custom display sizes) */
+  --t-mini:   0.6875rem;   /* 11px — labels */
+  --t-small:  0.8125rem;   /* 13px */
+  --t-body:   1.0625rem;   /* 17px — base reading */
+  --t-lead:   1.1875rem;   /* 19px */
+  --t-h6:     1rem;
+  --t-h5:     1.1875rem;
+  --t-h4:     1.4375rem;
+  --t-h3:     1.875rem;
+  --t-h2:     2.5rem;
+  --t-h1:     3.5rem;
+  --t-display:5.25rem;
+  --t-display-bn: 4.25rem;
+
+  /* leading */
+  --lh-tight:   1.05;
+  --lh-snug:    1.25;
+  --lh-body:    1.65;
+  --lh-bn-body: 1.85;
+
+  /* tracking */
+  --track-label: 0.18em;
+  --track-tight: -0.015em;
+
+  /* spacing (8pt-ish with golden bumps) */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --s-8: 4.5rem;
+  --s-9: 6rem;
+  --s-10: 9rem;
+
+  /* layout */
+  --measure:        38rem;   /* long-form reading width */
+  --container:      72rem;
+  --container-wide: 84rem;
+  --gutter:         clamp(1.25rem, 4vw, 2.5rem);
+
+  /* hairlines & radii */
+  --hairline: 1px;
+  --r-sm: 2px;
+  --r:    4px;
+  --r-lg: 10px;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+  --dur:  280ms;
+  --dur-fast: 160ms;
+  --dur-slow: 520ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground:        #100E0A;
+    --ground-deep:   #07060300;
+    --surface:       #1A1612;
+    --ink:           #ECE2C9;
+    --ink-soft:      #B4A990;
+    --ink-muted:     #837866;
+    --rule:          #3A3328;
+    --rule-soft:     #2A241D;
+    --moss:          #A5C99A;
+    --moss-hover:    #C0DBA9;
+    --moss-soft:     #2F3D2C;
+    --moss-tint:     #1F2A1D;
+    --rust:          #D08B5C;
+    --rust-soft:     #4A2D1E;
+    --selection-bg:  #4A3C24;
+    --selection-fg:  #ECE2C9;
+  }
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body, h1, h2, h3, h4, h5, h6, p, ul, ol, li, dl, dt, dd, figure, blockquote, hr {
+  margin: 0;
+  padding: 0;
+}
+ul, ol { list-style: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+img, svg, video { display: block; max-width: 100%; height: auto; }
+a { color: inherit; text-decoration: none; }
+hr { border: 0; height: 1px; background: var(--rule); }
+table { border-collapse: collapse; }
+:focus-visible {
+  outline: 2px solid var(--moss);
+  outline-offset: 3px;
+  border-radius: var(--r-sm);
+}
+::selection {
+  background: var(--selection-bg);
+  color: var(--selection-fg);
+}
+
+/* ============================================================
+   Page surface
+   ============================================================ */
+
+html {
+  font-family: var(--font-body);
+  font-size: 16px;
+  background: var(--ground);
+  color: var(--ink);
+  /* Subtle paper texture via radial noise */
+  background-image:
+    radial-gradient(at 12% 8%, color-mix(in oklab, var(--rule) 35%, transparent) 0, transparent 38%),
+    radial-gradient(at 88% 92%, color-mix(in oklab, var(--moss-tint) 60%, transparent) 0, transparent 42%);
+  background-attachment: fixed;
+}
+
+body {
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  font-feature-settings: "ss01", "kern", "liga";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+main { flex: 1; }
+
+/* Locale-aware fonts (works because Astro sets html[lang]) */
+:lang(bn) {
+  --font-body: var(--font-bn);
+  line-height: var(--lh-bn-body);
+}
+:lang(en) {
+  --font-body: var(--font-en);
+}
+
+/* But: if a specific element has lang attribute, switch fonts only for it
+   (used for inline Bengali names inside English pages, etc.) */
+[lang="bn"]:not(:root):not(html):not(body) {
+  font-family: var(--font-bn);
+  line-height: var(--lh-bn-body);
+}
+[lang="en"]:not(:root):not(html):not(body) {
+  font-family: var(--font-en);
+  line-height: var(--lh-body);
+}
+
+/* ============================================================
+   Typography defaults
+   ============================================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--track-tight);
+  color: var(--ink);
+  text-wrap: balance;
+}
+h1 { font-size: var(--t-h1); font-weight: 400; }
+h2 { font-size: var(--t-h2); font-weight: 400; }
+h3 { font-size: var(--t-h3); }
+h4 { font-size: var(--t-h4); }
+h5 { font-size: var(--t-h5); }
+h6 { font-size: var(--t-h6); }
+
+p { text-wrap: pretty; }
+
+em, i { font-style: italic; }
+strong, b { font-weight: 600; }
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  transition: text-decoration-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+a:hover {
+  color: var(--moss);
+  text-decoration-color: currentColor;
+}
+
+/* Small-caps label */
+.label {
+  font-size: var(--t-mini);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+:lang(bn) .label {
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+/* ============================================================
+   Layout helpers
+   ============================================================ */
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.container-wide {
+  max-width: var(--container-wide);
+}
+.measure {
+  max-width: var(--measure);
+}
+
+/* The "rule" — a hairline divider with optional botanical mark */
+.rule {
+  border: 0;
+  height: 1px;
+  background: var(--rule);
+  margin-block: var(--s-6);
+}
+.rule--ornament {
+  position: relative;
+  height: 1px;
+  background: var(--rule);
+  margin: var(--s-7) 0;
+  overflow: visible;
+}
+.rule--ornament::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  background: var(--ground);
+  transform: translate(-50%, -50%);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23756B5E' stroke-width='1.1' stroke-linecap='round' stroke-linejoin='round'><path d='M5 27c0-12 6-22 22-22 0 12-6 22-22 22z'/><path d='M5 27 27 5'/><path d='M11 20 17 14'/><path d='M16 20 21 15'/><path d='M11 15 16 10'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 16px 16px;
+}
+
+/* ============================================================
+   Skip link
+   ============================================================ */
+.skip {
+  position: absolute;
+  inset-inline-start: var(--s-3);
+  top: var(--s-3);
+  background: var(--ink);
+  color: var(--ground);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r);
+  transform: translateY(-150%);
+  transition: transform var(--dur) var(--ease);
+  z-index: 100;
+  text-decoration: none;
+}
+.skip:focus-visible {
+  transform: translateY(0);
+  color: var(--ground);
+}
+
+/* ============================================================
+   Motion: respect user pref
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* On-load reveal (only fires once per navigation) */
+.reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: reveal var(--dur-slow) var(--ease) forwards;
+}
+.reveal[data-delay="1"] { animation-delay: 80ms; }
+.reveal[data-delay="2"] { animation-delay: 160ms; }
+.reveal[data-delay="3"] { animation-delay: 240ms; }
+.reveal[data-delay="4"] { animation-delay: 320ms; }
+.reveal[data-delay="5"] { animation-delay: 400ms; }
+
+@keyframes reveal {
+  to { opacity: 1; transform: none; }
+}
+
+/* ============================================================
+   Form elements
+   ============================================================ */
+
+select, input[type="search"], input[type="text"], input[type="email"] {
+  font-family: var(--font-body);
+  font-size: var(--t-small);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  padding: 0.5rem 0.75rem;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+select:focus, input:focus, textarea:focus {
+  border-color: var(--moss);
+}
+
+/* ============================================================
+   Print
+   ============================================================ */
+@media print {
+  html { background: white; color: black; }
+  .masthead, .colophon, nav, .skip, .filters { display: none !important; }
+  body { font-size: 11pt; }
+  a { color: black; text-decoration: underline; }
+}

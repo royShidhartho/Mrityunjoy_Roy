@@ -1,0 +1,204 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../i18n/ui';
+
+export async function getStaticPaths() {
+  return Object.keys(languages).map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<BaseLayout title={t('nav.search')}>
+  <section class="search-page">
+    <div class="container">
+      <header class="search-head">
+        <p class="label">{t('nav.search')}</p>
+        <h1 class="search-head__title">
+          {locale === 'bn' ? 'আর্কাইভে অনুসন্ধান' : 'Search the archive'}
+        </h1>
+        <p class="search-head__sub">
+          {locale === 'bn'
+            ? 'বাংলা ও ইংরেজি উভয় ভাষায় খুঁজতে পারেন।'
+            : 'Search across both languages — type Bengali or English freely.'}
+        </p>
+      </header>
+
+      <form class="search-form" data-pagefind-ignore role="search">
+        <span class="search-form__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.35-4.35" />
+          </svg>
+        </span>
+        <input id="q" name="q" type="search" autocomplete="off"
+               placeholder={locale === 'bn' ? 'অনুসন্ধান শুরু করুন…' : 'Start typing…'} />
+      </form>
+
+      <p id="status" data-pagefind-ignore aria-live="polite" class="search-status"></p>
+      <ol id="results" data-pagefind-ignore class="search-results"></ol>
+    </div>
+  </section>
+
+  <script is:inline define:vars={{ locale, base }}>
+    (async () => {
+      const status = document.getElementById('status');
+      const results = document.getElementById('results');
+      const input = document.getElementById('q');
+
+      let pagefind;
+      try {
+        pagefind = await import(base + '/pagefind/pagefind.js');
+        await pagefind.options({ baseUrl: (base || '/') });
+      } catch (err) {
+        status.textContent = locale === 'bn'
+          ? 'অনুসন্ধান সূচক এখনো তৈরি হয়নি (চালান: npm run build)।'
+          : 'Search index not built (run `npm run build`).';
+        status.classList.add('search-status--warn');
+        input.disabled = true;
+        return;
+      }
+
+      let timer = null;
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const term = input.value.trim();
+        if (!term) {
+          status.textContent = '';
+          results.innerHTML = '';
+          return;
+        }
+        timer = setTimeout(async () => {
+          const search = await pagefind.search(term, {
+            filters: { language: [locale] },
+          });
+          status.textContent = locale === 'bn'
+            ? `${search.results.length}টি ফলাফল`
+            : `${search.results.length} result${search.results.length === 1 ? '' : 's'}`;
+          const items = await Promise.all(search.results.slice(0, 30).map((r) => r.data()));
+          results.innerHTML = items.map((d) => {
+            const title = d.meta && d.meta.title ? d.meta.title : d.url;
+            return (
+              '<li class="search-result">' +
+                '<a href="' + d.url + '" class="search-result__link">' +
+                  '<h3 class="search-result__title">' + title + '</h3>' +
+                  '<p class="search-result__excerpt">' + (d.excerpt || '') + '</p>' +
+                  '<span class="search-result__url label">' + d.url + '</span>' +
+                '</a>' +
+              '</li>'
+            );
+          }).join('');
+        }, 120);
+      });
+
+      input.focus();
+    })();
+  </script>
+</BaseLayout>
+
+<style>
+  .search-page { padding-block: var(--s-8) var(--s-8); }
+  .search-page > .container { max-width: 48rem; }
+
+  .search-head { margin-bottom: var(--s-5); }
+  .search-head__title {
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-3);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  :lang(bn) .search-head__title { font-size: clamp(1.875rem, 4.5vw, 2.75rem); }
+  .search-head__sub {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :lang(bn) .search-head__sub { font-style: normal; }
+
+  .search-form {
+    position: relative;
+    margin-block: var(--s-5);
+  }
+  .search-form__icon {
+    position: absolute;
+    inset-inline-start: var(--s-4);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ink-muted);
+    pointer-events: none;
+  }
+  .search-form__icon svg { width: 20px; height: 20px; display: block; }
+  .search-form input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    font-size: var(--t-lead);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    font-family: var(--font-body);
+    color: var(--ink);
+    transition: border-color var(--dur-fast) var(--ease);
+  }
+  .search-form input:focus {
+    outline: none;
+    border-color: var(--moss);
+    box-shadow: 0 0 0 4px var(--moss-tint);
+  }
+
+  .search-status {
+    color: var(--ink-muted);
+    font-size: var(--t-small);
+    font-style: italic;
+    min-height: 1.5rem;
+  }
+  :lang(bn) .search-status { font-style: normal; }
+  .search-status--warn { color: var(--rust); }
+
+  .search-results {
+    margin-top: var(--s-4);
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  :global(.search-result) {
+    border-top: 1px solid var(--rule);
+  }
+  :global(.search-result:last-child) {
+    border-bottom: 1px solid var(--rule);
+  }
+  :global(.search-result__link) {
+    display: block;
+    padding-block: var(--s-4);
+    text-decoration: none;
+    color: inherit;
+    transition: color var(--dur-fast) var(--ease);
+  }
+  :global(.search-result__link:hover) { color: var(--moss); }
+  :global(.search-result__title) {
+    font-size: var(--t-h5);
+    font-weight: 500;
+    margin-bottom: var(--s-2);
+    font-variation-settings: "opsz" 30;
+  }
+  :global(.search-result__excerpt) {
+    color: var(--ink-soft);
+    line-height: 1.5;
+    font-size: var(--t-small);
+  }
+  :global(.search-result__excerpt mark) {
+    background: var(--moss-tint);
+    color: inherit;
+    padding: 0 2px;
+  }
+  :global(.search-result__url) {
+    display: block;
+    margin-top: var(--s-2);
+    color: var(--ink-muted);
+    font-size: var(--t-mini);
+  }
+</style>

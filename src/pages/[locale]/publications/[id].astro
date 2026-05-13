@@ -1,0 +1,309 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { pick, formatDate } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  const pubs = await getCollection('publications');
+  const locales = Object.keys(languages);
+  return locales.flatMap((locale) =>
+    pubs
+      .filter((p) => p.data.type !== 'blog_post')
+      .map((p) => ({
+        params: { locale, id: p.id },
+        props: { entry: p },
+      }))
+  );
+}
+
+interface Props {
+  entry: CollectionEntry<'publications'>;
+}
+
+const { entry } = Astro.props;
+const locale = Astro.params.locale as Locale;
+const otherLocale: Locale = locale === 'bn' ? 'en' : 'bn';
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const p = entry.data;
+
+const title = pick(locale, p.title_bn, p.title_en);
+const otherTitle = pick(otherLocale, p.title_bn, p.title_en);
+const summary = pick(locale, p.summary_bn, p.summary_en);
+const body = pick(locale, p.body_bn, p.body_en);
+---
+
+<BaseLayout title={title} description={summary}>
+  <article class="article">
+    <header class="article__head">
+      <div class="container">
+        <p class="article__back">
+          <a href={`${base}/${locale}/publications`}>{t('publication.back')}</a>
+        </p>
+        <p class="label">{t(`type.${p.type}` as any)} · {t(`category.${p.category}` as any)}</p>
+        <h1 class="article__title">{title}</h1>
+        {otherTitle && otherTitle !== title && (
+          <p class="article__subtitle" lang={otherLocale}>{otherTitle}</p>
+        )}
+        <dl class="article__cite">
+          <dt class="label">{t('publication.date')}</dt>
+          <dd>
+            <time>{formatDate(p.date_published, locale)}</time>
+          </dd>
+          {p.venue && (
+            <>
+              <dt class="label">{t('publication.venue')}</dt>
+              <dd>
+                {p.venue_url ? (
+                  <a href={p.venue_url} target="_blank" rel="noopener">{p.venue}<span aria-hidden="true"> ↗</span></a>
+                ) : (
+                  p.venue
+                )}
+              </dd>
+            </>
+          )}
+          <dt class="label">{t('publication.language')}</dt>
+          <dd>{t(`language.${p.language}` as any)}</dd>
+        </dl>
+      </div>
+    </header>
+
+    {p.cover_image && (
+      <figure class="article__cover">
+        <img src={`${base}/${p.cover_image}`} alt={title} loading="lazy" />
+      </figure>
+    )}
+
+    <div class="article__body container">
+      {summary && (
+        <p class="article__lede">{summary}</p>
+      )}
+
+      {body && (
+        <div class="prose">
+          {body.split(/\n\n+/).map((para) => <p>{para}</p>)}
+        </div>
+      )}
+
+      {(p.scan_url || p.external_url) && (
+        <aside class="article__actions">
+          {p.scan_url && (
+            <a class="action" href={`${base}/${p.scan_url}`} target="_blank" rel="noopener">
+              <span class="action__label">{t('publication.scan')}</span>
+              <span class="action__arrow" aria-hidden="true">↓</span>
+            </a>
+          )}
+          {p.external_url && (
+            <a class="action" href={p.external_url} target="_blank" rel="noopener">
+              <span class="action__label">{t('publication.external')}</span>
+              <span class="action__arrow" aria-hidden="true">↗</span>
+            </a>
+          )}
+        </aside>
+      )}
+
+      {p.tags.length > 0 && (
+        <footer class="article__foot">
+          <p class="label">{t('publication.tags')}</p>
+          <div class="article__tags">
+            {p.tags.map((tag) => (
+              <a class="tag" href={`${base}/${locale}/tags/${tag}`}>#{tag}</a>
+            ))}
+          </div>
+        </footer>
+      )}
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .article { padding-block: var(--s-7) var(--s-8); }
+
+  .article__head {
+    text-align: center;
+    padding-block: var(--s-5) var(--s-7);
+  }
+  .article__back {
+    margin-bottom: var(--s-5);
+    text-align: start;
+  }
+  .article__back a {
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .article__back a:hover {
+    color: var(--moss);
+    border-color: currentColor;
+  }
+  .article__title {
+    font-size: clamp(2rem, 6vw, 4rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-2);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    max-width: 28ch;
+    margin-inline: auto;
+    text-wrap: balance;
+  }
+  :lang(bn) .article__title {
+    font-size: clamp(1.875rem, 5vw, 3.25rem);
+    line-height: 1.2;
+  }
+  .article__subtitle {
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    color: var(--ink-muted);
+    font-style: italic;
+    margin-bottom: var(--s-5);
+    font-variation-settings: "opsz" 36;
+  }
+  [lang="bn"].article__subtitle {
+    font-family: var(--font-bn);
+    font-style: normal;
+  }
+  [lang="en"].article__subtitle {
+    font-family: var(--font-en);
+  }
+
+  .article__cite {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, max-content));
+    justify-content: center;
+    gap: var(--s-4) var(--s-6);
+    margin-top: var(--s-5);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule);
+    max-width: 36rem;
+    margin-inline: auto;
+  }
+  .article__cite dt {
+    text-align: start;
+  }
+  .article__cite dd {
+    font-size: var(--t-small);
+    color: var(--ink-soft);
+    text-align: start;
+    margin-top: 2px;
+  }
+
+  .article__cover {
+    max-width: 26rem;
+    margin: 0 auto var(--s-7);
+    padding-inline: var(--gutter);
+  }
+  .article__cover img {
+    width: 100%;
+    height: auto;
+    border-radius: var(--r);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.05),
+      0 24px 48px -24px color-mix(in oklab, var(--ink) 30%, transparent);
+  }
+
+  .article__body {
+    max-width: 38rem;
+  }
+  .article__lede {
+    font-size: var(--t-lead);
+    color: var(--ink);
+    line-height: 1.6;
+    margin-bottom: var(--s-6);
+    padding-block: var(--s-3);
+    border-block: 1px solid var(--rule);
+    font-style: italic;
+  }
+  :lang(bn) .article__lede { font-style: normal; line-height: 1.85; }
+
+  .prose p {
+    margin-block: 0 var(--s-4);
+    font-size: var(--t-body);
+    line-height: var(--lh-body);
+    color: var(--ink);
+  }
+  :lang(bn) .prose p { line-height: var(--lh-bn-body); }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose p:first-of-type::first-letter {
+    font-size: 3.5em;
+    float: left;
+    line-height: 0.85;
+    padding-inline-end: 0.08em;
+    padding-top: 0.05em;
+    color: var(--moss);
+    font-variation-settings: "opsz" 144, "SOFT" 60;
+    font-weight: 400;
+  }
+  :lang(bn) .prose p:first-of-type::first-letter {
+    font-size: 1em;
+    float: none;
+    color: inherit;
+    padding: 0;
+  }
+
+  .article__actions {
+    margin-top: var(--s-6);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--rule);
+    display: flex;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .action {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    background: var(--moss);
+    color: var(--ground);
+    border-radius: var(--r);
+    text-decoration: none;
+    font-size: var(--t-small);
+    font-weight: 500;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .action:hover {
+    background: var(--moss-hover);
+    transform: translateY(-1px);
+    color: var(--ground);
+  }
+  .action__arrow { transition: transform var(--dur) var(--ease); }
+  .action:hover .action__arrow { transform: translate(2px, -2px); }
+  .action + .action {
+    background: transparent;
+    color: var(--moss);
+    border: 1px solid var(--moss);
+  }
+  .action + .action:hover {
+    background: var(--moss-tint);
+    color: var(--moss);
+  }
+
+  .article__foot {
+    margin-top: var(--s-6);
+    padding-top: var(--s-4);
+    border-top: 1px solid var(--rule-soft);
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .article__tags { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+  .tag {
+    font-size: var(--t-small);
+    color: var(--ink-soft);
+    text-decoration: none;
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+    transition: color var(--dur-fast) var(--ease);
+  }
+  .tag:hover { color: var(--moss); }
+
+  @media (max-width: 640px) {
+    .article__head { text-align: start; }
+    .article__title { margin-inline: 0; }
+    .article__cite { justify-content: start; }
+  }
+</style>

@@ -1,0 +1,334 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { pick, formatDate } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('arboretum');
+  const locales = Object.keys(languages);
+  return locales.flatMap((locale) =>
+    entries.map((entry) => ({
+      params: { locale, id: entry.id },
+      props: { entry },
+    }))
+  );
+}
+
+interface Props {
+  entry: CollectionEntry<'arboretum'>;
+}
+
+const { entry } = Astro.props;
+const locale = Astro.params.locale as Locale;
+const otherLocale: Locale = locale === 'bn' ? 'en' : 'bn';
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const e = entry.data;
+
+const commonName = pick(locale, e.common_name_bn, e.common_name_en);
+const otherName = pick(otherLocale, e.common_name_bn, e.common_name_en);
+const description = pick(locale, e.description_bn, e.description_en);
+const notes = pick(locale, e.notes_bn, e.notes_en);
+
+const kindLabel = {
+  plant: t('arboretum.plants'),
+  insect: t('arboretum.insects'),
+  spider: t('arboretum.spiders'),
+}[e.kind];
+
+const allPubs = await getCollection('publications');
+const relatedPubs = e.related_publications
+  .map((id) => allPubs.find((p) => p.id === id))
+  .filter(Boolean);
+---
+
+<BaseLayout title={commonName}>
+  <article class="specimen-detail">
+    <div class="container container-wide">
+      <p class="back">
+        <a href={`${base}/${locale}/arboretum`}>{t('arboretum.back')}</a>
+      </p>
+
+      <header class="spec-head">
+        <div class="spec-head__text">
+          <p class={`label kind-mark kind-mark--${e.kind}`}>
+            <span aria-hidden="true" class="kind-mark__dot"></span> {kindLabel}
+          </p>
+          <h1 class="spec-head__name">{commonName}</h1>
+          {otherName && otherName !== commonName && (
+            <p class="spec-head__other" lang={otherLocale}>{otherName}</p>
+          )}
+          <p class="spec-head__sci">{e.scientific_name}</p>
+        </div>
+        {e.photos[0] && (
+          <figure class="spec-head__hero">
+            <img src={`${base}/${e.photos[0].src}`}
+                 alt={pick(locale, e.photos[0].caption_bn, e.photos[0].caption_en, commonName)}
+                 loading="eager" />
+          </figure>
+        )}
+      </header>
+
+      <div class="spec-grid">
+        <aside class="spec-meta">
+          <dl class="meta-list">
+            {e.family && (
+              <>
+                <dt class="label">{t('arboretum.family')}</dt>
+                <dd>{e.family}</dd>
+              </>
+            )}
+            {e.first_observed_date && (
+              <>
+                <dt class="label">{t('arboretum.firstObserved')}</dt>
+                <dd>{formatDate(e.first_observed_date, locale)}</dd>
+              </>
+            )}
+            {e.location_in_arboretum && (
+              <>
+                <dt class="label">{t('arboretum.location')}</dt>
+                <dd>{e.location_in_arboretum}</dd>
+              </>
+            )}
+          </dl>
+        </aside>
+
+        <div class="spec-body">
+          {description && (
+            <section class="spec-section">
+              <h2 class="spec-section__h">{t('arboretum.description')}</h2>
+              <p>{description}</p>
+            </section>
+          )}
+
+          {notes && (
+            <section class="spec-section">
+              <h2 class="spec-section__h">{t('arboretum.notes')}</h2>
+              <p class="spec-section__notes">{notes}</p>
+            </section>
+          )}
+
+          {e.photos.length > 1 && (
+            <section class="spec-section">
+              <h2 class="spec-section__h">{t('about.photos')}</h2>
+              <div class="spec-photos">
+                {e.photos.slice(1).map((photo) => (
+                  <figure class="spec-photo">
+                    <img src={`${base}/${photo.src}`}
+                         alt={pick(locale, photo.caption_bn, photo.caption_en, commonName)}
+                         loading="lazy" />
+                    {pick(locale, photo.caption_bn, photo.caption_en) && (
+                      <figcaption>{pick(locale, photo.caption_bn, photo.caption_en)}</figcaption>
+                    )}
+                  </figure>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {relatedPubs.length > 0 && (
+            <section class="spec-section">
+              <h2 class="spec-section__h">{t('arboretum.related')}</h2>
+              <ul class="related">
+                {relatedPubs.map((p) => p && (
+                  <li>
+                    <a href={`${base}/${locale}/${p.data.type === 'blog_post' ? 'blog' : 'publications'}/${p.id}`}>
+                      {pick(locale, p.data.title_bn, p.data.title_en)}
+                    </a>
+                    <span class="label related__meta"> · {t(`type.${p.data.type}` as any)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .specimen-detail { padding-block: var(--s-6) var(--s-8); }
+
+  .back {
+    margin-bottom: var(--s-5);
+  }
+  .back a {
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .back a:hover { color: var(--moss); border-color: currentColor; }
+
+  .spec-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+    padding-bottom: var(--s-6);
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: var(--s-6);
+  }
+  @media (min-width: 800px) {
+    .spec-head { grid-template-columns: 1fr 1fr; align-items: center; }
+  }
+
+  .kind-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    background: var(--surface);
+  }
+  .kind-mark__dot { width: 8px; height: 8px; border-radius: 50%; }
+  .kind-mark--plant .kind-mark__dot  { background: #6E8C50; }
+  .kind-mark--insect .kind-mark__dot { background: #C58A3D; }
+  .kind-mark--spider .kind-mark__dot { background: #6E5E4E; }
+
+  .spec-head__name {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 400;
+    line-height: 1.05;
+    margin-block: var(--s-3) var(--s-2);
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    letter-spacing: -0.02em;
+  }
+  :lang(bn) .spec-head__name { font-size: clamp(1.875rem, 4.5vw, 3rem); }
+  .spec-head__other {
+    font-size: var(--t-h4);
+    color: var(--ink-muted);
+    font-style: italic;
+    margin-bottom: var(--s-2);
+  }
+  [lang="bn"].spec-head__other {
+    font-family: var(--font-bn);
+    font-style: normal;
+  }
+  [lang="en"].spec-head__other {
+    font-family: var(--font-en);
+  }
+  .spec-head__sci {
+    font-family: var(--font-en);
+    font-style: italic;
+    font-size: var(--t-lead);
+    color: var(--ink-soft);
+  }
+
+  .spec-head__hero {
+    margin: 0;
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    aspect-ratio: 4/3;
+  }
+  .spec-head__hero img {
+    width: 100%; height: 100%; object-fit: cover;
+  }
+
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+  }
+  @media (min-width: 800px) {
+    .spec-grid {
+      grid-template-columns: 14rem 1fr;
+      gap: var(--s-7);
+    }
+  }
+
+  .spec-meta {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    padding: var(--s-4);
+    height: fit-content;
+    position: sticky;
+    top: 5rem;
+  }
+  @media (max-width: 799px) {
+    .spec-meta { position: static; }
+  }
+  .meta-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+  }
+  .meta-list dt {
+    margin-bottom: 2px;
+  }
+  .meta-list dd {
+    font-size: var(--t-small);
+    color: var(--ink);
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .meta-list dd:last-child { border: 0; padding-bottom: 0; }
+
+  .spec-body {
+    max-width: 42rem;
+  }
+  .spec-section { margin-bottom: var(--s-6); }
+  .spec-section__h {
+    font-size: var(--t-h5);
+    font-weight: 500;
+    margin-bottom: var(--s-3);
+    color: var(--ink);
+    font-variation-settings: "opsz" 30;
+  }
+  .spec-section p {
+    line-height: var(--lh-body);
+    color: var(--ink);
+  }
+  :lang(bn) .spec-section p { line-height: var(--lh-bn-body); }
+  .spec-section__notes {
+    border-inline-start: 3px solid var(--moss);
+    padding-inline-start: var(--s-4);
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  :lang(bn) .spec-section__notes { font-style: normal; }
+
+  .spec-photos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--s-4);
+  }
+  .spec-photo {
+    margin: 0;
+  }
+  .spec-photo img {
+    width: 100%;
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    border-radius: var(--r);
+    border: 1px solid var(--rule);
+  }
+  .spec-photo figcaption {
+    margin-top: var(--s-2);
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :lang(bn) .spec-photo figcaption { font-style: normal; }
+
+  .related {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+  }
+  .related a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: var(--s-1);
+    transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+  }
+  .related a:hover { color: var(--moss); border-color: currentColor; }
+  .related__meta { color: var(--ink-muted); }
+</style>
