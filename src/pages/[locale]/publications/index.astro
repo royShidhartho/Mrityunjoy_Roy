@@ -1,0 +1,344 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { pick, formatDate, dateForSort } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  return Object.keys(languages).map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const all = await getCollection('publications');
+const pubs = all
+  .filter((p) => p.data.type !== 'blog_post')
+  .sort((a, b) => dateForSort(b.data.date_published) - dateForSort(a.data.date_published));
+
+function yearOf(d: string | Date): string {
+  if (typeof d === 'string') return d.slice(0, 4);
+  return String(d.getFullYear());
+}
+
+const categories = Array.from(new Set(pubs.map((p) => p.data.category)));
+const langs = Array.from(new Set(pubs.map((p) => p.data.language)));
+const years = Array.from(new Set(pubs.map((p) => yearOf(p.data.date_published)))).sort().reverse();
+const venues = Array.from(new Set(pubs.map((p) => p.data.venue).filter(Boolean) as string[])).sort();
+---
+
+<BaseLayout title={t('publications.title')}>
+  <section class="page-head">
+    <div class="container container-wide">
+      <p class="label reveal" data-delay="1">{locale === 'bn' ? 'বিভাগ' : 'Section'}</p>
+      <h1 class="page-head__title reveal" data-delay="2">{t('publications.title')}</h1>
+      <p class="page-head__sub reveal" data-delay="3">
+        {locale === 'bn'
+          ? `${pubs.length}টি ভুক্তি · ${categories.length} বিভাগ · ${years.length} বছর`
+          : `${pubs.length} entries · ${categories.length} categories · ${years.length} years`}
+      </p>
+    </div>
+  </section>
+
+  <section class="quick-cats">
+    <div class="container container-wide">
+      <span class="label">{locale === 'bn' ? 'দ্রুত নেভিগেশন' : 'Quick jump'}</span>
+      <div class="quick-cats__row">
+        {categories.map((c) => (
+          <a class="chip" href={`${base}/${locale}/publications/category/${c}`}>
+            {t(`category.${c}` as any)}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="filters" aria-label="Filters">
+    <div class="container container-wide filters__inner">
+      <span class="label">{locale === 'bn' ? 'ফিল্টার' : 'Filter'}</span>
+      <form class="filters__form" data-pagefind-ignore>
+        <label class="filter">
+          <span class="filter__label">{t('publication.category')}</span>
+          <select id="f-category">
+            <option value="">{locale === 'bn' ? 'সব' : 'All'}</option>
+            {categories.map((c) => <option value={c}>{t(`category.${c}` as any)}</option>)}
+          </select>
+        </label>
+        <label class="filter">
+          <span class="filter__label">{t('publication.language')}</span>
+          <select id="f-language">
+            <option value="">{locale === 'bn' ? 'সব' : 'All'}</option>
+            {langs.map((l) => <option value={l}>{t(`language.${l}` as any)}</option>)}
+          </select>
+        </label>
+        <label class="filter">
+          <span class="filter__label">{t('publication.date')}</span>
+          <select id="f-year">
+            <option value="">{locale === 'bn' ? 'সব' : 'All'}</option>
+            {years.map((y) => <option value={y}>{y}</option>)}
+          </select>
+        </label>
+        <label class="filter">
+          <span class="filter__label">{t('publication.venue')}</span>
+          <select id="f-venue">
+            <option value="">{locale === 'bn' ? 'সব' : 'All'}</option>
+            {venues.map((v) => <option value={v}>{v}</option>)}
+          </select>
+        </label>
+        <button type="reset" class="filter__reset">
+          {locale === 'bn' ? 'রিসেট' : 'Reset'}
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <section class="listing">
+    <div class="container container-wide">
+      {pubs.length === 0 ? (
+        <p class="empty">{t('publications.empty')}</p>
+      ) : (
+        <ol id="pub-list" class="entries">
+          {pubs.map((p) => (
+            <li class="entry"
+                data-category={p.data.category}
+                data-language={p.data.language}
+                data-year={yearOf(p.data.date_published)}
+                data-venue={p.data.venue ?? ''}>
+              <div class="entry__year">{yearOf(p.data.date_published)}</div>
+              <article class="entry__body">
+                <a class="entry__title" href={`${base}/${locale}/publications/${p.id}`}>
+                  {pick(locale, p.data.title_bn, p.data.title_en)}
+                </a>
+                <p class="entry__meta label">
+                  {t(`type.${p.data.type}` as any)} · {t(`category.${p.data.category}` as any)}
+                  {p.data.venue && <> · <span class="entry__venue">{p.data.venue}</span></>}
+                </p>
+                {pick(locale, p.data.summary_bn, p.data.summary_en) && (
+                  <p class="entry__excerpt">{pick(locale, p.data.summary_bn, p.data.summary_en)}</p>
+                )}
+                {p.data.tags.length > 0 && (
+                  <div class="entry__tags">
+                    {p.data.tags.map((tag) => (
+                      <a class="tag" href={`${base}/${locale}/tags/${tag}`}>#{tag}</a>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </li>
+          ))}
+        </ol>
+      )}
+      <p id="empty-state" class="empty" hidden>
+        {locale === 'bn' ? 'কোনো ফলাফল নেই। ফিল্টার রিসেট করুন।' : 'No matches. Try resetting the filters.'}
+      </p>
+    </div>
+  </section>
+
+  <script is:inline>
+    (function () {
+      const list = document.getElementById('pub-list');
+      const emptyState = document.getElementById('empty-state');
+      if (!list) return;
+      const filters = ['category', 'language', 'year', 'venue'];
+      const inputs = Object.fromEntries(filters.map((f) => [f, document.getElementById('f-' + f)]));
+      function apply() {
+        const want = Object.fromEntries(filters.map((f) => [f, inputs[f].value]));
+        let shown = 0;
+        Array.from(list.children).forEach((li) => {
+          const ok = filters.every((f) => !want[f] || li.dataset[f] === want[f]);
+          li.hidden = !ok;
+          if (ok) shown++;
+        });
+        if (emptyState) emptyState.hidden = shown !== 0;
+      }
+      filters.forEach((f) => inputs[f].addEventListener('change', apply));
+      const form = document.querySelector('.filters__form');
+      if (form) form.addEventListener('reset', () => setTimeout(apply, 0));
+    })();
+  </script>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-block: var(--s-8) var(--s-5);
+  }
+  .page-head__title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-3);
+    line-height: 1;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.02em;
+  }
+  :lang(bn) .page-head__title { font-size: clamp(2.25rem, 5.5vw, 3.5rem); }
+  .page-head__sub {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :lang(bn) .page-head__sub { font-style: normal; }
+
+  .quick-cats {
+    padding-block: var(--s-4);
+    border-top: 1px solid var(--rule);
+  }
+  .quick-cats > .container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+  }
+  .quick-cats__row {
+    display: flex;
+    gap: var(--s-2);
+    flex-wrap: wrap;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: var(--t-small);
+    color: var(--ink-soft);
+    text-decoration: none;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .chip:hover {
+    background: var(--moss-tint);
+    border-color: var(--moss);
+    color: var(--moss);
+  }
+
+  .filters {
+    background: var(--ground-deep);
+    border-block: 1px solid var(--rule);
+    padding-block: var(--s-4);
+    position: sticky;
+    top: 4.25rem;
+    z-index: 10;
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+  }
+  .filters__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .filters__form {
+    display: flex;
+    gap: var(--s-4);
+    flex-wrap: wrap;
+    align-items: end;
+    flex: 1;
+  }
+  .filter { display: flex; flex-direction: column; gap: 2px; }
+  .filter__label {
+    font-size: var(--t-mini);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+  :lang(bn) .filter__label { letter-spacing: 0; text-transform: none; font-size: var(--t-small); }
+  .filter select {
+    min-width: 7rem;
+    background: var(--surface);
+  }
+  .filter__reset {
+    font-size: var(--t-mini);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    padding: 0.55rem 0.8rem;
+    background: transparent;
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  :lang(bn) .filter__reset { letter-spacing: 0; text-transform: none; font-size: var(--t-small); }
+  .filter__reset:hover {
+    color: var(--rust);
+    border-color: var(--rust);
+  }
+
+  .listing { padding-block: var(--s-7) var(--s-8); }
+  .entries { display: flex; flex-direction: column; gap: 0; }
+  .entry {
+    display: grid;
+    grid-template-columns: 6rem 1fr;
+    gap: var(--s-5);
+    padding-block: var(--s-6);
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+  .entry:first-child { padding-top: var(--s-4); }
+  .entry__year {
+    font-size: var(--t-h4);
+    font-weight: 400;
+    color: var(--ink-muted);
+    font-variation-settings: "opsz" 24;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    padding-top: 0.4rem;
+  }
+  .entry:hover .entry__year { color: var(--moss); }
+  .entry__title {
+    font-size: var(--t-h3);
+    font-weight: 400;
+    color: var(--ink);
+    text-decoration: none;
+    line-height: 1.2;
+    font-variation-settings: "opsz" 60, "SOFT" 30;
+    display: inline-block;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size var(--dur) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  :lang(bn) .entry__title { font-size: var(--t-h4); line-height: 1.4; }
+  .entry__title:hover {
+    color: var(--moss);
+    background-size: 100% 1px;
+  }
+  .entry__meta {
+    margin-top: var(--s-2);
+    color: var(--ink-muted);
+  }
+  .entry__venue { font-style: italic; text-transform: none; letter-spacing: 0; }
+  .entry__excerpt {
+    margin-top: var(--s-3);
+    color: var(--ink-soft);
+    max-width: 48rem;
+    line-height: 1.6;
+  }
+  .entry__tags {
+    margin-top: var(--s-3);
+    display: flex;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: var(--t-mini);
+    color: var(--ink-muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    font-variant: small-caps;
+    transition: color var(--dur-fast) var(--ease);
+  }
+  .tag:hover { color: var(--moss); }
+
+  .empty {
+    padding-block: var(--s-6);
+    color: var(--ink-muted);
+    text-align: center;
+    font-style: italic;
+  }
+
+  @media (max-width: 720px) {
+    .entry { grid-template-columns: 1fr; gap: var(--s-2); padding-block: var(--s-5); }
+    .entry__year { font-size: var(--t-small); padding-top: 0; }
+    .filters { position: static; }
+  }
+</style>

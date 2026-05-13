@@ -1,0 +1,80 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { useTranslations, defaultLocale } from '../i18n/ui';
+
+const t = useTranslations(defaultLocale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<BaseLayout title={t('notfound.title')}>
+  <section class="not-found">
+    <div class="container">
+      <svg class="not-found__mark" viewBox="0 0 200 200" aria-hidden="true">
+        <path d="M20 180c0-90 50-160 160-160 0 90-50 160-160 160z" />
+        <path d="M20 180 180 20" />
+        <path d="M60 140 110 90" />
+        <path d="M90 140 130 100" />
+        <path d="M60 100 100 60" />
+      </svg>
+      <p class="label not-found__code">404</p>
+      <h1 class="not-found__title">{t('notfound.title')}</h1>
+      <p class="not-found__msg">{t('notfound.message')}</p>
+      <p class="not-found__cta">
+        <a href={`${base}/${defaultLocale}`}>{t('notfound.home')} →</a>
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found {
+    min-height: 70vh;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding-block: var(--s-8);
+  }
+  .not-found__mark {
+    width: 12rem;
+    height: 12rem;
+    fill: none;
+    stroke: var(--moss);
+    stroke-width: 0.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.4;
+    margin-inline: auto;
+    margin-bottom: var(--s-5);
+    transform: rotate(-12deg);
+    animation: drift 8s ease-in-out infinite;
+  }
+  @keyframes drift {
+    50% { transform: rotate(-8deg) translateY(-4px); }
+  }
+  .not-found__code {
+    color: var(--ink-muted);
+    margin-bottom: var(--s-3);
+  }
+  .not-found__title {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 400;
+    margin-bottom: var(--s-3);
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    letter-spacing: -0.02em;
+  }
+  .not-found__msg {
+    color: var(--ink-soft);
+    margin-bottom: var(--s-5);
+    font-style: italic;
+  }
+  .not-found__cta a {
+    font-size: var(--t-lead);
+    color: var(--moss);
+    text-decoration: none;
+    border-bottom: 1px solid currentColor;
+    padding-bottom: 2px;
+    transition: transform var(--dur) var(--ease);
+    display: inline-block;
+  }
+  .not-found__cta a:hover { transform: translateX(4px); }
+</style>

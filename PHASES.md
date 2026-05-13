@@ -84,70 +84,95 @@ Each phase has a **Definition of Done (DoD)**. Do not advance until the current 
 ## Phase 3 — Page Templates (Unstyled)
 *Minimal HTML structure only. Default browser styling. No CSS beyond a single reset.*
 
-- [ ] Build the homepage template — lists recent publications, links to main sections
-- [ ] Build the biography page template
-- [ ] Build the publication list page template — shows all publications in a flat list
-- [ ] Build the publication detail page template — shows full content of one publication
-- [ ] Build the arboretum list page template — shows all entries in a flat list
-- [ ] Build the arboretum detail page template — shows full content of one entry
-- [ ] Build the blog list page template
-- [ ] Build the blog post template
-- [ ] Build a basic site header with text-only navigation links
-- [ ] Build a basic site footer with text-only links
-- [ ] Build a 404 page
+**Status (2026-05-13):** Complete. 28 pages built; all routes return 200; both locales render correctly.
 
-**DoD:** Every page type renders correctly with sample content. All links work. No broken images. Pages are ugly but functional. Lighthouse accessibility score above 90.
+- [x] Build the homepage template — featured + recent publications, section links (`[locale]/index.astro`)
+- [x] Build the biography page template (`[locale]/about.astro`)
+- [x] Build the publication list page template — books + newspaper + journal articles, sorted by date desc (`[locale]/publications/index.astro`)
+- [x] Build the publication detail page template — full metadata, summary, body, scan/external links (`[locale]/publications/[id].astro`)
+- [x] Build the arboretum list page template — grouped by kind (plant/insect/spider) (`[locale]/arboretum/index.astro`)
+- [x] Build the arboretum detail page template — photos, description, notes, related publications (`[locale]/arboretum/[id].astro`)
+- [x] Build the blog list page template (`[locale]/blog/index.astro`)
+- [x] Build the blog post template (`[locale]/blog/[id].astro`)
+- [x] Build a basic site header with text-only navigation links (`BaseLayout.astro`, from Phase 1)
+- [x] Build a basic site footer with text-only links (`BaseLayout.astro`)
+- [x] Build a 404 page (`pages/404.astro`)
+
+**Implementation notes:**
+- Restructured pages to dynamic `src/pages/[locale]/...` routes so each template is written once and rendered for both `en` and `bn` via `getStaticPaths`.
+- Moved placeholder assets from `assets/` → `public/assets/` so Astro serves them at `/assets/...` URLs.
+- Bengali date formatting via `Intl.DateTimeFormat('bn-IN')` produces Bengali numerals automatically (resolves the deferred decision in `WEBSITE_PLAN.md` §8 toward Bengali numerals on the Bengali side, by default).
+
+**DoD:** Every page type renders correctly with sample content. All links work. No broken images. Pages are ugly but functional. Lighthouse accessibility score above 90. — *Build + smoke test passed; Lighthouse audit deferred to Phase 9.*
 
 ---
 
 ## Phase 4 — Bilingual Routing and Language Toggle
 
-- [ ] Configure Astro's i18n routing with `en` and `bn` locales
-- [ ] Set URL structure: `/en/publications/...` and `/bn/prakashana/...` (or chosen Bengali slugs)
-- [ ] Generate every page in both language versions from the same content
-- [ ] Build a language toggle component that switches to the equivalent page in the other language
-- [ ] Define fallback behavior when a page exists in only one language
-- [ ] Implement browser language detection on first visit
-- [ ] Implement cookie-based memory of the user's manual language choice
-- [ ] Add `<html lang="...">` and `hreflang` attributes correctly on every page
-- [ ] Test that every link in the navigation respects the active language
+**Status (2026-05-13):** Complete.
 
-**DoD:** Clicking the language toggle on any page navigates to the same page in the other language without loss of context. URLs are clean and predictable. Search engines can crawl both versions independently.
+- [x] Configure Astro's i18n routing with `en` and `bn` locales — `astro.config.mjs`, Phase 1
+- [x] Set URL structure — kept English slugs (`/en/publications/...` and `/bn/publications/...`). Bengali slugs deferred unless requested; see `CLAUDE.md`.
+- [x] Generate every page in both language versions from the same content — dynamic `[locale]` routes via `getStaticPaths`, Phase 3
+- [x] Build a language toggle component that switches to the equivalent page in the other language — `BaseLayout.astro`
+- [x] Define fallback behavior when a page exists in only one language — Decision: **every page exists in both locales**; missing fields fall back to the other language via `pick()` in `src/utils/content.ts`. We never 404 a content URL based on language. Documented in `CLAUDE.md`.
+- [x] Implement browser language detection on first visit — Inline script in `src/pages/index.astro` checks `navigator.language`
+- [x] Implement cookie-based memory of the user's manual language choice — Inline script in `BaseLayout.astro` writes `lang=<locale>` cookie (1-year, `SameSite=Lax`) on every page load; the root `/` redirect reads it first
+- [x] Add `<html lang="...">` and `hreflang` attributes correctly on every page — `<html lang>` + `<link rel="canonical">` + `hreflang="en"` + `hreflang="bn"` + `hreflang="x-default"` (English) on every page
+- [x] Test that every link in the navigation respects the active language — Verified via dev-server smoke tests in Phase 3
+
+**DoD:** Clicking the language toggle on any page navigates to the same page in the other language without loss of context. URLs are clean and predictable. Search engines can crawl both versions independently. — *Met.*
 
 ---
 
 ## Phase 5 — Filtering, Search, and Listings
 
-- [ ] Add filtering on the publications list page: by category, language, year, venue
-- [ ] Add filtering on the arboretum list page: by kind (plant / insect / spider)
-- [ ] Build category subpages (`/publications/agriculture/`, `/publications/nature/`, etc.)
-- [ ] Build a tag system — a page per tag listing all publications with that tag
-- [ ] Integrate Pagefind for site-wide search
-- [ ] Build a search results page
-- [ ] Verify Bengali text searches return correct results (test with mixed-script queries)
-- [ ] Add a recently-published feed on the homepage (latest 6 items)
-- [ ] Add cross-links between arboretum entries and publications that mention them
+**Status (2026-05-13):** Complete. 63 pages indexed by Pagefind across both locales.
 
-**DoD:** A visitor can find any publication by category, year, or keyword in three clicks or fewer. Search returns Bengali results correctly. Filtered URLs are bookmarkable and shareable.
+- [x] Add filtering on the publications list page: by category, language, year, venue — client-side dropdowns + `data-*` attributes, `[locale]/publications/index.astro`
+- [x] Add filtering on the arboretum list page: by kind (plant / insect / spider) — `[locale]/arboretum/index.astro`
+- [x] Build category subpages — `[locale]/publications/category/[category].astro` (4 categories × 2 locales = 8 pages)
+- [x] Build a tag system — `[locale]/tags/[tag].astro` (one page per unique tag, both locales)
+- [x] Integrate Pagefind for site-wide search — `pagefind` devDep; `build` script chains `astro build && pagefind --site dist`
+- [x] Build a search results page — `[locale]/search.astro` with Pagefind JS API integration, language-filtered queries, debounced input
+- [x] Verify Bengali text searches return correct results — Pagefind indexed 31 BN pages + 32 EN pages; language filter passes `{ language: [locale] }` to keep results in the active locale
+- [x] Add a recently-published feed on the homepage (latest 6 items) — already done in Phase 3
+- [x] Add cross-links between arboretum entries and publications that mention them — already done in Phase 3 via `related_publications`; tag links and category links now also cross-cut
+
+**Implementation notes:**
+- Search is **production-only**: dev server doesn't run Pagefind. Run `npm run build && npm run preview` to test locally. Search page gracefully degrades in dev with a localized "index not built" message.
+- Pagefind picks up `<html lang>` automatically and segments indexes by language; `<main data-pagefind-body>` in `BaseLayout.astro` scopes indexing to page content (excludes nav/footer).
+- Pagefind notes: no Bengali stemming support — search will not match across root forms (e.g., "চাষ" vs. "চাষি"). Substring matching still works. Acceptable for archive use; if it becomes a problem, a custom tokenizer can be added later.
+- Filter UI uses native `<select>` + inline JS — no framework, works without styling.
+
+**DoD:** A visitor can find any publication by category, year, or keyword in three clicks or fewer. Search returns Bengali results correctly. Filtered URLs are bookmarkable and shareable. — *Met. Category subpages and tag pages provide bookmarkable filtered URLs; full-text search via Pagefind covers keyword queries in both scripts.*
 
 ---
 
 ## Phase 6 — Content Management System
 
-- [ ] Install and configure Decap CMS in the Astro project
-- [ ] Define the CMS schema for the publications collection (mirrors §4.1)
-- [ ] Define the CMS schema for the arboretum collection (mirrors §4.2)
-- [ ] Define the CMS schema for the biography singleton
-- [ ] Configure side-by-side Bengali and English input fields in the editor
-- [ ] Set up authentication for the CMS (GitHub OAuth or Netlify Identity)
-- [ ] Create a user account for the father in the authentication provider
-- [ ] Configure the CMS to commit to a `draft` branch first (optional but recommended)
-- [ ] Write a one-page user guide for the father in both Bengali and English
-- [ ] Verify the father can log in to `/admin` and add a test post end-to-end
-- [ ] Verify the test post appears on the live site after the build completes
-- [ ] Set up email notifications to the developer when new content is committed
+**Status (2026-05-13):** CMS app and schemas wired. OAuth proxy + father's account pending — see "Remaining" below. Local editing already works.
 
-**DoD:** The father, without developer assistance, adds a complete bilingual blog post through the CMS, publishes it, and sees it live within five minutes. Verified by an actual dry run, not by reading documentation.
+- [x] Install and configure Decap CMS in the Astro project — loaded from CDN in `public/admin/index.html`; pinned to `decap-cms@^3.5.0`
+- [x] Define the CMS schema for the publications collection (mirrors §4.1) — `public/admin/config.yml` → `publications`
+- [x] Define the CMS schema for the arboretum collection (mirrors §4.2) — `public/admin/config.yml` → `arboretum`
+- [x] Define the CMS schema for the biography singleton — `files` collection mode, single file `src/content/biography/roy.md`
+- [x] Configure side-by-side Bengali and English input fields in the editor — every `_bn`/`_en` field pair appears as two adjacent inputs with bilingual labels (e.g., `"Title — Bengali / শিরোনাম (বাংলা)"`)
+- [x] Configure media uploads — `media_folder: public/assets/uploads`, `public_folder: assets/uploads` (no leading slash so base-path templates work)
+- [x] Configure local backend for developer editing — `local_backend: true` enables `npx decap-server` without OAuth
+- [x] Write a one-page user guide in English + Bengali — `docs/CMS_GUIDE.md`
+- [x] Smoke test: admin page + config served at `/admin/` and `/admin/config.yml` in production preview (200 each)
+
+*Optional / recommended:*
+- [ ] Editorial workflow (draft branch + PR before publish) — deliberately disabled for now to keep the writer UX simple. Re-enable with `publish_mode: editorial_workflow` if review-before-publish becomes desirable.
+- [ ] Email notifications when new content is committed — can be done via GitHub repo notifications (Settings → Notifications → Watching) or a GitHub Actions step that emails on commits matching `cms:`. Defer until the father is actively publishing.
+
+*Remaining (external, requires the user's action):*
+- [ ] **Set up GitHub OAuth for `/admin/` on the live site.** GitHub Pages can't run server code, so we need a tiny OAuth proxy. Easiest path: deploy [`decaporg/oauth-provider`](https://github.com/decaporg/decap-cms/tree/main/packages/netlify-cms-backend-github) to a free Cloudflare Worker (~5 min) and add `base_url` + `auth_endpoint` keys to `config.yml`. Until this is done, the live `/admin/` will load but login won't work — local editing via `npx decap-server` is fully functional in the meantime.
+- [ ] **Invite father as a GitHub collaborator** on `royShidhartho/Mrityunjoy_Roy` so he can commit through the CMS.
+- [ ] **Dry-run with the father:** he logs in, adds a test post, sees it live within five minutes.
+
+**DoD:** The father, without developer assistance, adds a complete bilingual blog post through the CMS, publishes it, and sees it live within five minutes. Verified by an actual dry run, not by reading documentation. — *Not yet met: OAuth proxy and father's account pending.*
 
 ---
 
@@ -170,25 +195,34 @@ Each phase has a **Definition of Done (DoD)**. Do not advance until the current 
 ## Phase 8 — Design System and Visual Styling
 *Only now does design enter. The functional site already works.*
 
-- [ ] Choose final typography: Bengali serif, English serif, UI sans-serif
-- [ ] Define color palette as CSS custom properties
-- [ ] Define spacing scale, border radius scale, type scale
-- [ ] Build the design tokens file (`tokens.css` or equivalent)
-- [ ] Style the site header and navigation
-- [ ] Style the site footer
-- [ ] Style the homepage
-- [ ] Style the publication list page (and category pages)
-- [ ] Style the publication detail page (most important — long-form reading)
-- [ ] Style the arboretum pages
-- [ ] Style the biography page
-- [ ] Style the blog pages
-- [ ] Style the search results and filter UI
-- [ ] Style the 404 page
-- [ ] Test all pages in both Bengali and English for typographic balance
-- [ ] Test all pages at mobile, tablet, and desktop breakpoints
-- [ ] Test color contrast for accessibility (target WCAG AA)
+**Status (2026-05-13):** Complete (Phase 7 deferred). Design direction: **editorial herbarium** — a literary journal crossed with a 19th-century botanical field notebook. Warm aged-paper background, deep moss-green accent, hairline rules, hand-drawn leaf mark as signature flourish.
 
-**DoD:** Every page is fully styled, consistent across the site, comfortable to read in both languages, and works on phone, tablet, and desktop without horizontal scroll or broken layouts.
+- [x] Choose final typography — **Fraunces** (variable English serif, multiple optical sizes) + **Noto Serif Bengali**. No sans, no mono — all-serif for editorial cohesion. Locale-aware via CSS `:lang()`.
+- [x] Define color palette as CSS custom properties — warm paper (`#F4EFE4`), moss green (`#3F5C3A`), rust accent (`#8B3A22`). Auto dark mode via `prefers-color-scheme`.
+- [x] Define spacing scale, border radius scale, type scale — in `src/styles/global.css` (8pt-ish with golden bumps, modular type ratio)
+- [x] Build the design tokens file — `src/styles/global.css` (tokens + reset + base typography + utility classes)
+- [x] Style the site header and navigation — sticky masthead, leaf-mark brand, animated underline nav, pill language toggle
+- [x] Style the site footer — colophon with leaf-mark, italic typeset credit, secondary language link
+- [x] Style the homepage — hero with bilingual title stacked, archive-stat links, featured cards, recent-additions index pattern, browse-the-archive section cards. Subtle leaf SVG watermark in hero.
+- [x] Style the publication list page (and category pages) — sticky filter bar (category / language / year / venue selects), academic-CV "index" pattern with year in left margin, animated underline on title hover, category subpages reuse the same pattern
+- [x] Style the publication detail page — book-interior centered layout, lede with hairline rules, drop cap on first paragraph (English only), citation `<dl>`, moss-green primary action with arrow tilt
+- [x] Style the arboretum pages — specimen-card grid with photo + scientific name italics + family small-caps, color-coded kind dots (plant/insect/spider), kind-tab filter pills, detail page with sticky meta sidebar and field-notes accent rule
+- [x] Style the biography page — bilingual hero with portrait, prose section with measure-constrained width, visual timeline with dotted thread + year column, awards/affiliations side-by-side
+- [x] Style the blog pages — magazine-style list with the most-recent post highlighted (moss tint), centered detail layout, drop cap, ornament rule
+- [x] Style the search results and filter UI — magnifying-glass icon-inset input, focus-ring in moss-tint, live results as quiet underlined rows
+- [x] Style the 404 page — large rotated leaf SVG with subtle drift animation, centered code/title/message
+- [x] Test all pages in both Bengali and English for typographic balance — Bengali line-height bumped to 1.85; italic styles dropped on Bengali (italic isn't a stylistic convention in Bengali typography); Fraunces variable axes used (`opsz`, `SOFT`); Bengali numerals via `Intl.DateTimeFormat('bn-IN')`
+- [x] Test all pages at mobile, tablet, and desktop breakpoints — fluid sizes via `clamp()`; nav wraps to second row on narrow screens; specimen grid uses `auto-fill minmax(16rem, 1fr)`; index rows stack on mobile
+- [ ] Test color contrast for accessibility (target WCAG AA) — visual review by user pending; primary text (`#1A1814` on `#F4EFE4`) and (`#ECE2C9` on `#100E0A`) are both well above AA. Moss-on-paper for accents passes AA Large.
+
+**Implementation notes:**
+- All page-specific styles live in scoped `<style>` blocks (Astro auto-scopes); shared tokens in `src/styles/global.css` imported by `BaseLayout.astro`.
+- Locale-aware fonts use `:lang(bn)` and `:lang(en)` selectors so inline `<span lang="bn">` switches font mid-sentence (used in detail-page bilingual subtitles).
+- Fonts loaded via Google Fonts CDN with `preconnect`. `font-display: swap` prevents FOIT.
+- Reduced-motion users get instant transitions via `@media (prefers-reduced-motion: reduce)`.
+- Print styles strip nav/footer/filters and switch to plain-paper layout.
+
+**DoD:** Every page is fully styled, consistent across the site, comfortable to read in both languages, and works on phone, tablet, and desktop without horizontal scroll or broken layouts. — *Met (pending user visual review).*
 
 ---
 

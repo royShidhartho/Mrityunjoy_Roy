@@ -1,0 +1,436 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../i18n/ui';
+import { pick, formatDate, dateForSort } from '../../utils/content';
+
+export async function getStaticPaths() {
+  return Object.keys(languages).map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const otherLocale: Locale = locale === 'bn' ? 'en' : 'bn';
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const pubs = await getCollection('publications');
+const featured = pubs.filter((p) => p.data.featured).slice(0, 3);
+const recent = [...pubs]
+  .sort((a, b) => dateForSort(b.data.date_published) - dateForSort(a.data.date_published))
+  .slice(0, 6);
+const arboretum = await getCollection('arboretum');
+
+const biography = (await getCollection('biography'))[0];
+const bioShort = biography ? pick(locale, biography.data.bio_short_bn, biography.data.bio_short_en) : '';
+
+const counts = {
+  books: pubs.filter((p) => p.data.type === 'book').length,
+  articles: pubs.filter((p) => p.data.type === 'newspaper_article' || p.data.type === 'journal_article').length,
+  blog: pubs.filter((p) => p.data.type === 'blog_post').length,
+  arboretum: arboretum.length,
+};
+
+// other-language title (to display bilingual stack in hero)
+const titleOther = otherLocale === 'bn' ? 'মৃত্যুঞ্জয় রায়' : 'Mrityunjoy Roy';
+
+const sections = [
+  { href: `${base}/${locale}/publications`, label: t('home.sections.publications'), count: pubs.length - counts.blog, hint: locale === 'bn' ? 'বই, প্রবন্ধ, জার্নাল' : 'Books, articles, journal pieces' },
+  { href: `${base}/${locale}/arboretum`,    label: t('home.sections.arboretum'),    count: counts.arboretum,          hint: locale === 'bn' ? 'উদ্ভিদ, পোকা, মাকড়সা' : 'Plants, insects, spiders' },
+  { href: `${base}/${locale}/blog`,         label: t('home.sections.blog'),         count: counts.blog,               hint: locale === 'bn' ? 'সাম্প্রতিক লেখা' : 'Recent writing' },
+  { href: `${base}/${locale}/about`,        label: t('home.sections.about'),        count: null,                      hint: locale === 'bn' ? 'জীবনী ও কালপঞ্জি' : 'Biography & timeline' },
+];
+---
+
+<BaseLayout>
+  <section class="hero">
+    <div class="container container-wide">
+      <div class="hero__inner">
+        <p class="label reveal" data-delay="1">
+          <span aria-hidden="true">○</span>&nbsp;&nbsp;{locale === 'bn' ? 'একটি দ্বিভাষিক আর্কাইভ' : 'A bilingual archive'}
+        </p>
+        <h1 class="hero__title reveal" data-delay="2">
+          <span class="hero__name">{t('site.title')}</span>
+          <span class="hero__name hero__name--other" lang={otherLocale}>{titleOther}</span>
+        </h1>
+        <p class="hero__tagline reveal" data-delay="3">{t('site.tagline')}</p>
+        {bioShort && <p class="hero__bio reveal" data-delay="4">{bioShort}</p>}
+
+        <div class="hero__stats reveal" data-delay="5">
+          <a href={`${base}/${locale}/publications`} class="stat">
+            <span class="stat__num">{pubs.length - counts.blog}</span>
+            <span class="stat__label label">{locale === 'bn' ? 'প্রকাশনা' : 'Publications'}</span>
+          </a>
+          <a href={`${base}/${locale}/arboretum`} class="stat">
+            <span class="stat__num">{counts.arboretum}</span>
+            <span class="stat__label label">{locale === 'bn' ? 'বৃক্ষশালা' : 'Arboretum'}</span>
+          </a>
+          <a href={`${base}/${locale}/blog`} class="stat">
+            <span class="stat__num">{counts.blog}</span>
+            <span class="stat__label label">{locale === 'bn' ? 'ব্লগ' : 'Blog'}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {featured.length > 0 && (
+    <section class="featured">
+      <div class="container container-wide">
+        <header class="section-head">
+          <span class="label">{t('home.featured')}</span>
+          <h2 class="section-head__title">{locale === 'bn' ? 'নির্বাচিত লেখা' : 'Selected writings'}</h2>
+        </header>
+        <div class="featured__grid">
+          {featured.map((p, i) => (
+            <article class="card">
+              <a class="card__link" href={`${base}/${locale}/${p.data.type === 'blog_post' ? 'blog' : 'publications'}/${p.id}`}>
+                <span class="card__meta label">
+                  {t(`type.${p.data.type}` as any)} · {formatDate(p.data.date_published, locale)}
+                </span>
+                <h3 class="card__title">{pick(locale, p.data.title_bn, p.data.title_en)}</h3>
+                {pick(locale, p.data.summary_bn, p.data.summary_en) && (
+                  <p class="card__excerpt">{pick(locale, p.data.summary_bn, p.data.summary_en)}</p>
+                )}
+                <span class="card__cta label">{locale === 'bn' ? 'পড়ুন →' : 'Read →'}</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <section class="recent">
+    <div class="container container-wide">
+      <header class="section-head">
+        <span class="label">{t('home.recent')}</span>
+        <h2 class="section-head__title">{locale === 'bn' ? 'সর্বশেষ যোগ' : 'Latest additions'}</h2>
+      </header>
+      {recent.length === 0 ? (
+        <p>{t('publications.empty')}</p>
+      ) : (
+        <ol class="index">
+          {recent.map((p) => {
+            const dateStr = formatDate(p.data.date_published, locale);
+            return (
+              <li class="index__row">
+                <span class="index__date">{dateStr}</span>
+                <a class="index__title" href={`${base}/${locale}/${p.data.type === 'blog_post' ? 'blog' : 'publications'}/${p.id}`}>
+                  {pick(locale, p.data.title_bn, p.data.title_en)}
+                </a>
+                <span class="index__type label">{t(`type.${p.data.type}` as any)}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  </section>
+
+  <section class="sections">
+    <div class="container container-wide">
+      <header class="section-head">
+        <span class="label">{t('home.explore')}</span>
+        <h2 class="section-head__title">{locale === 'bn' ? 'বিভাগসমূহ' : 'Browse the archive'}</h2>
+      </header>
+      <div class="sections__grid">
+        {sections.map((s) => (
+          <a href={s.href} class="section-card">
+            <svg class="section-card__mark" viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M5 27c0-12 6-22 22-22 0 12-6 22-22 22z" />
+              <path d="M5 27 27 5" />
+            </svg>
+            <span class="section-card__label">{s.label}</span>
+            <span class="section-card__hint">{s.hint}</span>
+            {s.count !== null && <span class="section-card__count label">{s.count}</span>}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* ===== Hero ===== */
+  .hero {
+    padding-block: var(--s-8) var(--s-7);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    top: 8%;
+    right: -8rem;
+    width: 24rem;
+    height: 24rem;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%233F5C3A' stroke-width='0.5' stroke-opacity='0.18'><path d='M20 180c0-90 50-160 160-160 0 90-50 160-160 160z'/><path d='M20 180 180 20'/><path d='M60 140 110 90'/><path d='M90 140 130 100'/><path d='M60 100 100 60'/><path d='M120 140 150 110'/><path d='M50 130 90 90'/></svg>");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 52rem;
+  }
+  .hero__title {
+    margin-block: var(--s-3) var(--s-5);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    line-height: var(--lh-tight);
+  }
+  .hero__name {
+    font-size: clamp(2.5rem, 7vw, var(--t-display));
+    font-weight: 400;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.025em;
+  }
+  :lang(bn) .hero__name {
+    font-size: clamp(2.25rem, 6vw, var(--t-display-bn));
+    line-height: 1.1;
+  }
+  .hero__name--other {
+    color: var(--ink-muted);
+    font-size: clamp(1.5rem, 4vw, 3rem);
+    font-style: italic;
+    font-variation-settings: "opsz" 60;
+  }
+  :lang(bn) .hero__name--other,
+  [lang="bn"].hero__name--other {
+    font-style: normal;
+    font-family: var(--font-bn);
+  }
+  [lang="en"].hero__name--other {
+    font-family: var(--font-en);
+  }
+
+  .hero__tagline {
+    font-size: var(--t-lead);
+    color: var(--ink-soft);
+    max-width: 36rem;
+    margin-bottom: var(--s-4);
+  }
+  .hero__bio {
+    font-size: var(--t-body);
+    color: var(--ink-muted);
+    max-width: 36rem;
+    margin-bottom: var(--s-6);
+    font-style: italic;
+  }
+  :lang(bn) .hero__bio { font-style: normal; }
+
+  .hero__stats {
+    display: flex;
+    gap: var(--s-7);
+    border-top: 1px solid var(--rule);
+    padding-top: var(--s-5);
+    flex-wrap: wrap;
+  }
+  .stat {
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--ink);
+    transition: color var(--dur-fast) var(--ease);
+  }
+  .stat__num {
+    font-size: var(--t-h2);
+    font-weight: 400;
+    font-variation-settings: "opsz" 120;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat:hover { color: var(--moss); }
+  .stat__label { color: inherit; opacity: 0.7; }
+
+  /* ===== Section head ===== */
+  .section-head {
+    margin-bottom: var(--s-5);
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-4);
+    flex-wrap: wrap;
+  }
+  .section-head__title {
+    font-size: var(--t-h3);
+    font-weight: 400;
+    font-variation-settings: "opsz" 60;
+  }
+
+  /* ===== Featured cards ===== */
+  .featured {
+    padding-block: var(--s-7);
+    border-top: 1px solid var(--rule);
+  }
+  .featured__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+    gap: var(--s-5);
+  }
+  .card {
+    border: 1px solid var(--rule);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(at 100% 0%, var(--moss-tint) 0, transparent 40%);
+    opacity: 0;
+    transition: opacity var(--dur) var(--ease);
+    pointer-events: none;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--moss);
+    box-shadow: 0 8px 24px -16px color-mix(in oklab, var(--moss) 40%, transparent);
+  }
+  .card:hover::before { opacity: 1; }
+  .card__link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-5);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    height: 100%;
+  }
+  .card__title {
+    font-size: var(--t-h4);
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.25;
+    margin-block: 0;
+    font-variation-settings: "opsz" 48;
+  }
+  .card__excerpt {
+    color: var(--ink-soft);
+    font-size: var(--t-small);
+    line-height: 1.6;
+  }
+  .card__cta {
+    margin-top: auto;
+    color: var(--moss);
+    transition: transform var(--dur) var(--ease);
+  }
+  .card:hover .card__cta { transform: translateX(4px); }
+
+  /* ===== Index (recent list) ===== */
+  .recent {
+    padding-block: var(--s-7);
+    border-top: 1px solid var(--rule);
+  }
+  .index {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .index__row {
+    display: grid;
+    grid-template-columns: 9rem 1fr auto;
+    align-items: baseline;
+    gap: var(--s-4);
+    padding-block: var(--s-3);
+    border-bottom: 1px solid var(--rule-soft);
+    transition: background var(--dur-fast) var(--ease);
+  }
+  .index__row:hover { background: color-mix(in oklab, var(--moss-tint) 60%, transparent); }
+  .index__date {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-muted);
+    font-size: var(--t-small);
+    font-feature-settings: "ss01", "tnum";
+  }
+  .index__title {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: var(--t-lead);
+    line-height: 1.4;
+  }
+  :lang(bn) .index__title { font-size: var(--t-body); }
+  .index__title:hover { color: var(--moss); text-decoration: underline; text-decoration-color: currentColor; text-underline-offset: 0.2em; }
+  .index__type { white-space: nowrap; color: var(--ink-muted); }
+
+  @media (max-width: 640px) {
+    .index__row {
+      grid-template-columns: 1fr;
+      gap: var(--s-1);
+      padding-block: var(--s-4);
+    }
+    .index__type { font-size: 0.625rem; }
+  }
+
+  /* ===== Section cards (explore) ===== */
+  .sections {
+    padding-block: var(--s-7) var(--s-8);
+    border-top: 1px solid var(--rule);
+  }
+  .sections__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .section-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    column-gap: var(--s-4);
+    row-gap: 2px;
+    align-items: center;
+    padding: var(--s-5);
+    background: var(--surface);
+    color: var(--ink);
+    text-decoration: none;
+    transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+    position: relative;
+  }
+  .section-card:hover {
+    background: var(--moss-tint);
+    color: var(--moss);
+  }
+  .section-card__mark {
+    grid-row: 1 / 3;
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.1;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    color: var(--ink-muted);
+    transition: transform var(--dur) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .section-card:hover .section-card__mark {
+    color: var(--moss);
+    transform: rotate(-10deg);
+  }
+  .section-card__label {
+    font-size: var(--t-lead);
+    font-weight: 500;
+    font-variation-settings: "opsz" 48;
+  }
+  .section-card__hint {
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    grid-column: 2 / 3;
+  }
+  .section-card__count {
+    grid-row: 1 / 3;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .section-card:hover .section-card__count { color: var(--moss); }
+</style>

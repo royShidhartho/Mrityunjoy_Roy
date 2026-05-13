@@ -1,0 +1,170 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { pick, formatDate, dateForSort } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  return Object.keys(languages).map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const all = await getCollection('publications');
+const posts = all
+  .filter((p) => p.data.type === 'blog_post')
+  .sort((a, b) => dateForSort(b.data.date_published) - dateForSort(a.data.date_published));
+---
+
+<BaseLayout title={t('blog.title')}>
+  <section class="page-head">
+    <div class="container container-wide">
+      <p class="label reveal" data-delay="1">{locale === 'bn' ? 'নতুন লেখা' : 'New writing'}</p>
+      <h1 class="page-head__title reveal" data-delay="2">{t('blog.title')}</h1>
+      <p class="page-head__sub reveal" data-delay="3">
+        {locale === 'bn' ? 'ওয়েব-ভিত্তিক ছোট প্রবন্ধ ও পর্যবেক্ষণ' : 'Web-first essays and short observations'}
+      </p>
+    </div>
+  </section>
+
+  <section class="posts">
+    <div class="container">
+      {posts.length === 0 ? (
+        <p class="empty">{t('blog.empty')}</p>
+      ) : (
+        <ol class="post-list">
+          {posts.map((p, i) => (
+            <li class={i === 0 ? 'post post--featured' : 'post'}>
+              <article>
+                <a class="post__link" href={`${base}/${locale}/blog/${p.id}`}>
+                  <time class="post__date label">{formatDate(p.data.date_published, locale)}</time>
+                  <h2 class="post__title">{pick(locale, p.data.title_bn, p.data.title_en)}</h2>
+                  {pick(locale, p.data.summary_bn, p.data.summary_en) && (
+                    <p class="post__excerpt">{pick(locale, p.data.summary_bn, p.data.summary_en)}</p>
+                  )}
+                  <span class="post__read label">{locale === 'bn' ? 'পড়ুন →' : 'Read →'}</span>
+                </a>
+                {p.data.tags.length > 0 && (
+                  <div class="post__tags">
+                    {p.data.tags.map((tag) => (
+                      <a class="tag" href={`${base}/${locale}/tags/${tag}`}>#{tag}</a>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-block: var(--s-8) var(--s-5);
+  }
+  .page-head__title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-3);
+    line-height: 1;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.02em;
+  }
+  :lang(bn) .page-head__title { font-size: clamp(2.25rem, 5.5vw, 3.5rem); }
+  .page-head__sub {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :lang(bn) .page-head__sub { font-style: normal; }
+
+  .posts { padding-block: var(--s-6) var(--s-8); }
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .post {
+    padding-block: var(--s-6);
+    border-top: 1px solid var(--rule);
+  }
+  .post:last-child { border-bottom: 1px solid var(--rule); }
+
+  .post__link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+  .post__date {
+    display: inline-block;
+    margin-bottom: var(--s-3);
+    font-variant-numeric: tabular-nums;
+  }
+  .post__title {
+    font-size: var(--t-h3);
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1.15;
+    font-variation-settings: "opsz" 60, "SOFT" 30;
+    margin-bottom: var(--s-3);
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    display: inline;
+    transition: background-size var(--dur) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  :lang(bn) .post__title { font-size: var(--t-h4); line-height: 1.35; }
+  .post__link:hover .post__title {
+    color: var(--moss);
+    background-size: 100% 1px;
+  }
+  .post__excerpt {
+    margin-top: var(--s-3);
+    color: var(--ink-soft);
+    line-height: 1.6;
+    max-width: 50rem;
+  }
+  .post__read {
+    display: inline-block;
+    margin-top: var(--s-3);
+    color: var(--moss);
+    transition: transform var(--dur) var(--ease);
+  }
+  .post__link:hover .post__read { transform: translateX(4px); }
+
+  .post__tags {
+    margin-top: var(--s-3);
+    display: flex;
+    gap: var(--s-3);
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: var(--t-mini);
+    color: var(--ink-muted);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    font-variant: small-caps;
+  }
+  .tag:hover { color: var(--moss); }
+
+  .post--featured {
+    padding-block: var(--s-7) var(--s-6);
+    background: linear-gradient(to bottom, var(--moss-tint), transparent 60%);
+  }
+  .post--featured .post__title {
+    font-size: clamp(2rem, 4.5vw, var(--t-h2));
+    font-weight: 400;
+  }
+  :lang(bn) .post--featured .post__title { font-size: clamp(1.75rem, 4vw, var(--t-h3)); }
+
+  .empty {
+    padding-block: var(--s-6);
+    color: var(--ink-muted);
+    text-align: center;
+    font-style: italic;
+  }
+</style>

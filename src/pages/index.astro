@@ -1,4 +1,28 @@
 ---
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-return Astro.redirect(`${base}/en`);
+const fallback = `${base}/en/`;
 ---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Portfolio</title>
+    <meta http-equiv="refresh" content={`0; url=${fallback}`} />
+    <link rel="canonical" href={fallback} />
+    <script is:inline define:vars={{ base }}>
+      (function () {
+        try {
+          var saved = (document.cookie.match(/(?:^|; )lang=(en|bn)/) || [])[1];
+          var browser = (navigator.language || '').toLowerCase();
+          var pref = saved || (browser.indexOf('bn') === 0 ? 'bn' : 'en');
+          location.replace(base + '/' + pref + '/');
+        } catch (e) {
+          location.replace(base + '/en/');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Loading… <a href={`${base}/en/`}>English</a> · <a href={`${base}/bn/`}>বাংলা</a></p>
+  </body>
+</html>

@@ -1,0 +1,269 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { pick } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  return Object.keys(languages).map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const all = await getCollection('arboretum');
+const kinds = ['plant', 'insect', 'spider'] as const;
+const kindLabel = {
+  plant: t('arboretum.plants'),
+  insect: t('arboretum.insects'),
+  spider: t('arboretum.spiders'),
+};
+const groups: Record<typeof kinds[number], typeof all> = {
+  plant: all.filter((e) => e.data.kind === 'plant'),
+  insect: all.filter((e) => e.data.kind === 'insect'),
+  spider: all.filter((e) => e.data.kind === 'spider'),
+};
+---
+
+<BaseLayout title={t('arboretum.title')}>
+  <section class="page-head">
+    <div class="container container-wide">
+      <p class="label reveal" data-delay="1">{locale === 'bn' ? 'মাঠ পর্যবেক্ষণ' : 'Field collection'}</p>
+      <h1 class="page-head__title reveal" data-delay="2">{t('arboretum.title')}</h1>
+      <p class="page-head__sub reveal" data-delay="3">
+        {locale === 'bn'
+          ? `${all.length}টি প্রজাতি · ${groups.plant.length} উদ্ভিদ · ${groups.insect.length} পোকা · ${groups.spider.length} মাকড়সা`
+          : `${all.length} species · ${groups.plant.length} plants · ${groups.insect.length} insects · ${groups.spider.length} spiders`}
+      </p>
+    </div>
+  </section>
+
+  <section class="kinds">
+    <div class="container container-wide">
+      <div class="kinds__tabs" role="tablist">
+        <button class="kind-tab is-active" data-kind="">{locale === 'bn' ? 'সব' : 'All'}</button>
+        {kinds.map((k) => groups[k].length > 0 && (
+          <button class="kind-tab" data-kind={k}>
+            <span aria-hidden="true" class={`kind-tab__dot kind-tab__dot--${k}`}></span>
+            {kindLabel[k]} <span class="kind-tab__count">({groups[k].length})</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="specimens">
+    <div class="container container-wide">
+      {all.length === 0 ? (
+        <p class="empty">{t('arboretum.empty')}</p>
+      ) : (
+        <ul id="specimen-grid" class="specimen-grid">
+          {all.map((e) => (
+            <li class="specimen" data-kind={e.data.kind}>
+              <a class="specimen__link" href={`${base}/${locale}/arboretum/${e.id}`}>
+                <figure class="specimen__figure">
+                  {e.data.photos[0] ? (
+                    <img src={`${base}/${e.data.photos[0].src}`}
+                         alt={pick(locale, e.data.photos[0].caption_bn, e.data.photos[0].caption_en, pick(locale, e.data.common_name_bn, e.data.common_name_en))}
+                         loading="lazy" />
+                  ) : (
+                    <div class="specimen__placeholder" aria-hidden="true">
+                      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 27c0-12 6-22 22-22 0 12-6 22-22 22z" />
+                        <path d="M5 27 27 5" />
+                      </svg>
+                    </div>
+                  )}
+                  <span class={`specimen__kind specimen__kind--${e.data.kind}`}>{kindLabel[e.data.kind]}</span>
+                </figure>
+                <div class="specimen__body">
+                  <h3 class="specimen__name">{pick(locale, e.data.common_name_bn, e.data.common_name_en)}</h3>
+                  <p class="specimen__sci">{e.data.scientific_name}</p>
+                  {e.data.family && <p class="specimen__family label">{e.data.family}</p>}
+                </div>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p id="empty-state" class="empty" hidden>
+        {locale === 'bn' ? 'এই বিভাগে কোনো ভুক্তি নেই।' : 'No entries in this group.'}
+      </p>
+    </div>
+  </section>
+
+  <script is:inline>
+    (function () {
+      const grid = document.getElementById('specimen-grid');
+      const emptyState = document.getElementById('empty-state');
+      const tabs = document.querySelectorAll('.kind-tab');
+      if (!grid) return;
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tabs.forEach((t) => t.classList.remove('is-active'));
+          tab.classList.add('is-active');
+          const want = tab.dataset.kind || '';
+          let shown = 0;
+          Array.from(grid.children).forEach((li) => {
+            const ok = !want || li.dataset.kind === want;
+            li.hidden = !ok;
+            if (ok) shown++;
+          });
+          if (emptyState) emptyState.hidden = shown !== 0;
+        });
+      });
+    })();
+  </script>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-block: var(--s-8) var(--s-5);
+  }
+  .page-head__title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-3);
+    line-height: 1;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.02em;
+  }
+  :lang(bn) .page-head__title { font-size: clamp(2.25rem, 5.5vw, 3.5rem); }
+  .page-head__sub {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :lang(bn) .page-head__sub { font-style: normal; }
+
+  .kinds {
+    padding-block: var(--s-4) var(--s-5);
+    border-top: 1px solid var(--rule);
+  }
+  .kinds__tabs {
+    display: flex;
+    gap: var(--s-2);
+    flex-wrap: wrap;
+  }
+  .kind-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    font-size: var(--t-small);
+    color: var(--ink-soft);
+    background: transparent;
+    cursor: pointer;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .kind-tab:hover {
+    border-color: var(--moss);
+    color: var(--moss);
+  }
+  .kind-tab.is-active {
+    background: var(--ink);
+    color: var(--ground);
+    border-color: var(--ink);
+  }
+  .kind-tab__dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+  .kind-tab__dot--plant  { background: #6E8C50; }
+  .kind-tab__dot--insect { background: #C58A3D; }
+  .kind-tab__dot--spider { background: #6E5E4E; }
+  .kind-tab__count { color: var(--ink-muted); }
+  .kind-tab.is-active .kind-tab__count { color: color-mix(in oklab, var(--ground) 70%, transparent); }
+
+  .specimens { padding-block: var(--s-5) var(--s-8); }
+  .specimen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: var(--s-5);
+  }
+  .specimen {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    overflow: hidden;
+    transition: all var(--dur) var(--ease);
+  }
+  .specimen:hover {
+    transform: translateY(-2px);
+    border-color: var(--moss);
+    box-shadow: 0 8px 24px -16px color-mix(in oklab, var(--moss) 50%, transparent);
+  }
+  .specimen__link {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+  }
+  .specimen__figure {
+    position: relative;
+    aspect-ratio: 4/3;
+    background: var(--ground-deep);
+    border-bottom: 1px solid var(--rule);
+    overflow: hidden;
+  }
+  .specimen__figure img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+  .specimen:hover .specimen__figure img { transform: scale(1.03); }
+  .specimen__placeholder {
+    width: 100%; height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--ink-muted);
+    background:
+      radial-gradient(at 50% 50%, var(--moss-tint) 0, transparent 60%);
+  }
+  .specimen__placeholder svg { width: 4rem; height: 4rem; }
+  .specimen__kind {
+    position: absolute;
+    top: var(--s-3);
+    inset-inline-start: var(--s-3);
+    background: color-mix(in oklab, var(--ground) 90%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: var(--ink);
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: var(--t-mini);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    border: 1px solid var(--rule);
+  }
+  :lang(bn) .specimen__kind { text-transform: none; letter-spacing: 0; font-size: var(--t-small); }
+  .specimen__kind--plant  { border-color: #B5C49B; }
+  .specimen__kind--insect { border-color: #E0BC85; }
+  .specimen__kind--spider { border-color: #BFB29E; }
+  .specimen__body {
+    padding: var(--s-4);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .specimen__name {
+    font-size: var(--t-h4);
+    font-weight: 500;
+    line-height: 1.2;
+    color: var(--ink);
+    font-variation-settings: "opsz" 48;
+  }
+  :lang(bn) .specimen__name { font-size: var(--t-lead); }
+  .specimen__sci {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: var(--t-small);
+    font-family: var(--font-en);
+  }
+  .specimen__family { color: var(--ink-muted); margin-top: 2px; }
+</style>

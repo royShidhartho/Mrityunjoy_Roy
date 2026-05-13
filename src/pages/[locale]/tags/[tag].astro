@@ -1,0 +1,150 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { pick, formatDate, dateForSort } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  const pubs = await getCollection('publications');
+  const tags = Array.from(new Set(pubs.flatMap((p) => p.data.tags)));
+  const locales = Object.keys(languages);
+  return locales.flatMap((locale) =>
+    tags.map((tag) => ({
+      params: { locale, tag },
+      props: { tag },
+    }))
+  );
+}
+
+interface Props {
+  tag: string;
+}
+
+const { tag } = Astro.props;
+const locale = Astro.params.locale as Locale;
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const all = await getCollection('publications');
+const pubs = all
+  .filter((p) => p.data.tags.includes(tag))
+  .sort((a, b) => dateForSort(b.data.date_published) - dateForSort(a.data.date_published));
+
+function yearOf(d: string | Date): string {
+  if (typeof d === 'string') return d.slice(0, 4);
+  return String(d.getFullYear());
+}
+---
+
+<BaseLayout title={`#${tag}`}>
+  <section class="page-head">
+    <div class="container container-wide">
+      <p class="label reveal" data-delay="1">{locale === 'bn' ? 'ট্যাগ' : 'Tag'}</p>
+      <h1 class="page-head__title reveal" data-delay="2">#{tag}</h1>
+      <p class="page-head__sub reveal" data-delay="3">
+        {locale === 'bn' ? `এই ট্যাগে ${pubs.length}টি প্রকাশনা` : `${pubs.length} publication${pubs.length === 1 ? '' : 's'} with this tag`}
+      </p>
+    </div>
+  </section>
+
+  <section class="listing">
+    <div class="container container-wide">
+      <p class="back">
+        <a href={`${base}/${locale}/publications`}>{t('publication.back')}</a>
+      </p>
+
+      {pubs.length === 0 ? (
+        <p class="empty">{t('publications.empty')}</p>
+      ) : (
+        <ol class="entries">
+          {pubs.map((p) => (
+            <li class="entry">
+              <div class="entry__year">{yearOf(p.data.date_published)}</div>
+              <article class="entry__body">
+                <a class="entry__title" href={`${base}/${locale}/${p.data.type === 'blog_post' ? 'blog' : 'publications'}/${p.id}`}>
+                  {pick(locale, p.data.title_bn, p.data.title_en)}
+                </a>
+                <p class="entry__meta label">
+                  {t(`type.${p.data.type}` as any)} · {t(`category.${p.data.category}` as any)}
+                  {p.data.venue && <> · <span class="entry__venue">{p.data.venue}</span></>}
+                </p>
+                {pick(locale, p.data.summary_bn, p.data.summary_en) && (
+                  <p class="entry__excerpt">{pick(locale, p.data.summary_bn, p.data.summary_en)}</p>
+                )}
+              </article>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-head { padding-block: var(--s-8) var(--s-5); }
+  .page-head__title {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-3);
+    line-height: 1;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.02em;
+    color: var(--moss);
+    font-family: var(--font-en);
+  }
+  .page-head__sub { color: var(--ink-muted); font-style: italic; }
+  :lang(bn) .page-head__sub { font-style: normal; }
+
+  .listing { padding-block: var(--s-6) var(--s-8); border-top: 1px solid var(--rule); }
+  .back { margin-bottom: var(--s-5); }
+  .back a {
+    font-size: var(--t-small);
+    color: var(--ink-muted);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all var(--dur-fast) var(--ease);
+  }
+  .back a:hover { color: var(--moss); border-color: currentColor; }
+
+  .entries { display: flex; flex-direction: column; gap: 0; }
+  .entry {
+    display: grid;
+    grid-template-columns: 6rem 1fr;
+    gap: var(--s-5);
+    padding-block: var(--s-6);
+    border-bottom: 1px solid var(--rule);
+  }
+  .entry__year {
+    font-size: var(--t-h4);
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    padding-top: 0.4rem;
+  }
+  .entry__title {
+    font-size: var(--t-h3);
+    color: var(--ink);
+    text-decoration: none;
+    line-height: 1.2;
+    font-variation-settings: "opsz" 60, "SOFT" 30;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size var(--dur) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  :lang(bn) .entry__title { font-size: var(--t-h4); line-height: 1.35; }
+  .entry__title:hover {
+    color: var(--moss);
+    background-size: 100% 1px;
+  }
+  .entry__meta { margin-top: var(--s-2); color: var(--ink-muted); }
+  .entry__venue { font-style: italic; text-transform: none; letter-spacing: 0; }
+  .entry__excerpt { margin-top: var(--s-3); color: var(--ink-soft); max-width: 48rem; line-height: 1.6; }
+  .empty { padding-block: var(--s-6); color: var(--ink-muted); text-align: center; font-style: italic; }
+
+  @media (max-width: 640px) {
+    .entry { grid-template-columns: 1fr; gap: var(--s-2); padding-block: var(--s-5); }
+    .entry__year { font-size: var(--t-small); padding-top: 0; }
+  }
+</style>

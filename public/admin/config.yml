@@ -1,0 +1,200 @@
+backend:
+  name: github
+  repo: royShidhartho/Mrityunjoy_Roy
+  branch: main
+  commit_messages:
+    create: 'cms: create {{collection}} "{{slug}}"'
+    update: 'cms: update {{collection}} "{{slug}}"'
+    delete: 'cms: delete {{collection}} "{{slug}}"'
+    uploadMedia: 'cms: upload "{{path}}"'
+    deleteMedia: 'cms: remove "{{path}}"'
+
+# Enables `npx decap-server` for local editing without GitHub OAuth.
+# In production, this falls back to the github backend defined above.
+local_backend: true
+
+# Media files are committed to public/assets/uploads/ and served at /assets/uploads/.
+# We omit the leading slash so the path can be prefixed with base_url in templates.
+media_folder: 'public/assets/uploads'
+public_folder: 'assets/uploads'
+
+site_url: https://royShidhartho.github.io/Mrityunjoy_Roy/
+display_url: https://royShidhartho.github.io/Mrityunjoy_Roy/
+logo_url: https://royShidhartho.github.io/Mrityunjoy_Roy/favicon.svg
+
+# Common reusable field definitions — referenced via YAML anchors below.
+collections:
+  - name: publications
+    label: 'Publications / প্রকাশনা'
+    label_singular: 'Publication / প্রকাশনা'
+    folder: 'src/content/publications'
+    create: true
+    delete: true
+    slug: '{{slug}}'
+    identifier_field: title_en
+    summary: '{{title_en}} ({{date_published}})'
+    sortable_fields: [date_published, title_en, type, category, featured]
+    view_filters:
+      - label: Featured
+        field: featured
+        pattern: true
+      - label: Books
+        field: type
+        pattern: book
+      - label: Newspaper articles
+        field: type
+        pattern: newspaper_article
+      - label: Blog posts
+        field: type
+        pattern: blog_post
+    view_groups:
+      - label: By type
+        field: type
+      - label: By category
+        field: category
+    fields:
+      - { label: 'Title — English', name: title_en, widget: string }
+      - { label: 'Title — Bengali / শিরোনাম (বাংলা)', name: title_bn, widget: string }
+      - label: Type
+        name: type
+        widget: select
+        options:
+          - { label: 'Book / বই', value: book }
+          - { label: 'Newspaper article / সংবাদপত্রের প্রবন্ধ', value: newspaper_article }
+          - { label: 'Blog post / ব্লগ পোস্ট', value: blog_post }
+          - { label: 'Journal article / জার্নাল প্রবন্ধ', value: journal_article }
+      - label: 'Source language'
+        name: language
+        widget: select
+        options:
+          - { label: 'Bengali / বাংলা', value: bn }
+          - { label: 'English / ইংরেজি', value: en }
+          - { label: 'Bilingual / দ্বিভাষিক', value: mixed }
+      - label: Category
+        name: category
+        widget: select
+        options:
+          - { label: 'Agriculture / কৃষি', value: agriculture }
+          - { label: 'Nature & Environment / প্রকৃতি ও পরিবেশ', value: nature_environment }
+          - { label: 'Literature / সাহিত্য', value: literature }
+          - { label: 'Other / অন্যান্য', value: other }
+      - label: 'Date published (YYYY or YYYY-MM-DD)'
+        name: date_published
+        widget: string
+        hint: 'Year is enough if exact date is unknown. Examples: 1995, 2010-07-14'
+      - { label: 'Venue / প্রকাশস্থল', name: venue, widget: string, required: false }
+      - { label: 'Venue URL', name: venue_url, widget: string, required: false, pattern: ['^https?://', 'Must start with http:// or https://'] }
+      - { label: 'Summary — English (1–3 sentences)', name: summary_en, widget: text, required: false }
+      - { label: 'Summary — Bengali / সারাংশ (বাংলা)', name: summary_bn, widget: text, required: false }
+      - { label: 'Body — English (full text if available)', name: body_en, widget: text, required: false }
+      - { label: 'Body — Bengali / সম্পূর্ণ পাঠ্য (বাংলা)', name: body_bn, widget: text, required: false }
+      - { label: 'PDF scan / স্ক্যান', name: scan_url, widget: file, required: false, media_library: { config: { multiple: false } } }
+      - { label: 'External URL', name: external_url, widget: string, required: false, pattern: ['^https?://', 'Must start with http:// or https://'] }
+      - { label: 'Cover image (books)', name: cover_image, widget: image, required: false }
+      - label: 'Tags'
+        name: tags
+        widget: list
+        required: false
+        default: []
+        hint: 'Free-form, cross-cutting keywords (e.g., farming, soil, monsoon)'
+      - { label: 'Featured on homepage / প্রচ্ছদে নির্বাচিত', name: featured, widget: boolean, required: false, default: false }
+
+  - name: arboretum
+    label: "Roy's Arboretum / রায়ের বৃক্ষশালা"
+    label_singular: 'Entry / ভুক্তি'
+    folder: 'src/content/arboretum'
+    create: true
+    delete: true
+    slug: '{{slug}}'
+    identifier_field: common_name_en
+    summary: '{{common_name_en}} ({{scientific_name}})'
+    sortable_fields: [common_name_en, scientific_name, kind, first_observed_date]
+    view_groups:
+      - label: By kind
+        field: kind
+    fields:
+      - label: Kind
+        name: kind
+        widget: select
+        options:
+          - { label: 'Plant / উদ্ভিদ', value: plant }
+          - { label: 'Insect / পোকা', value: insect }
+          - { label: 'Spider / মাকড়সা', value: spider }
+      - { label: 'Common name — English', name: common_name_en, widget: string }
+      - { label: 'Common name — Bengali / সাধারণ নাম (বাংলা)', name: common_name_bn, widget: string }
+      - { label: 'Scientific name (Latin binomial)', name: scientific_name, widget: string }
+      - { label: 'Family', name: family, widget: string, required: false }
+      - { label: 'First observed (YYYY or YYYY-MM-DD)', name: first_observed_date, widget: string, required: false }
+      - { label: 'Location in arboretum', name: location_in_arboretum, widget: string, required: false }
+      - { label: 'Description — English', name: description_en, widget: text, required: false }
+      - { label: 'Description — Bengali / বিবরণ (বাংলা)', name: description_bn, widget: text, required: false }
+      - { label: 'Field notes — English', name: notes_en, widget: text, required: false }
+      - { label: 'Field notes — Bengali / মাঠ পর্যবেক্ষণ (বাংলা)', name: notes_bn, widget: text, required: false }
+      - label: Photos
+        name: photos
+        widget: list
+        required: false
+        default: []
+        fields:
+          - { label: 'Image', name: src, widget: image }
+          - { label: 'Caption — English', name: caption_en, widget: string, required: false }
+          - { label: 'Caption — Bengali / ক্যাপশন (বাংলা)', name: caption_bn, widget: string, required: false }
+      - label: 'Related publications'
+        name: related_publications
+        widget: relation
+        required: false
+        collection: publications
+        search_fields: [title_en, title_bn]
+        value_field: '{{slug}}'
+        display_fields: [title_en]
+        multiple: true
+        default: []
+
+  - name: biography
+    label: 'Biography / জীবনী'
+    label_singular: 'Biography'
+    editor:
+      preview: false
+    files:
+      - name: roy
+        label: 'Biography (single page)'
+        file: 'src/content/biography/roy.md'
+        fields:
+          - { label: 'Short bio — English (1 sentence)', name: bio_short_en, widget: string }
+          - { label: 'Short bio — Bengali / সংক্ষিপ্ত পরিচয় (বাংলা)', name: bio_short_bn, widget: string }
+          - { label: 'Long bio — English', name: bio_long_en, widget: text, required: false }
+          - { label: 'Long bio — Bengali / দীর্ঘ জীবনী (বাংলা)', name: bio_long_bn, widget: text, required: false }
+          - { label: 'Contact email', name: contact_email, widget: string, required: false }
+          - label: 'Affiliations / সংশ্লিষ্টতা'
+            name: affiliations
+            widget: list
+            required: false
+            default: []
+            hint: 'One affiliation per item'
+          - label: 'Timeline / কালপঞ্জি'
+            name: timeline
+            widget: list
+            required: false
+            default: []
+            fields:
+              - { label: 'Year', name: year, widget: number, value_type: int, min: 1900, max: 2100 }
+              - { label: 'Event — English', name: event_en, widget: string }
+              - { label: 'Event — Bengali / ঘটনা (বাংলা)', name: event_bn, widget: string }
+          - label: 'Awards / পুরস্কার'
+            name: awards
+            widget: list
+            required: false
+            default: []
+            fields:
+              - { label: 'Year', name: year, widget: number, value_type: int, required: false }
+              - { label: 'Name — English', name: name_en, widget: string }
+              - { label: 'Name — Bengali / নাম (বাংলা)', name: name_bn, widget: string }
+          - label: 'Photos / ছবি'
+            name: photos
+            widget: list
+            required: false
+            default: []
+            fields:
+              - { label: 'Image', name: src, widget: image }
+              - { label: 'Caption — English', name: caption_en, widget: string, required: false }
+              - { label: 'Caption — Bengali', name: caption_bn, widget: string, required: false }
