@@ -1,0 +1,4 @@
+id,kind,common_name_bn,common_name_en,scientific_name,family,photos,description_bn,description_en,notes_bn,notes_en,first_observed_date,location_in_arboretum,related_publications
+plant-1,plant,[BN] উদ্ভিদ ১,Placeholder Plant 1,Genus species,Familyaceae,assets/placeholders/arboretum/plant-1.svg,[BN] বিবরণ।,Placeholder English description.,[BN] মাঠ পর্যবেক্ষণ।,Placeholder field note.,2020-04-10,North bed,book-nature-1
+insect-1,insect,[BN] পোকা ১,Placeholder Insect 1,Genus species,Familyidae,assets/placeholders/arboretum/insect-1.svg,[BN] বিবরণ।,Placeholder English description.,[BN] মাঠ পর্যবেক্ষণ।,Placeholder field note.,2021-06-18,South bed,
+spider-1,spider,[BN] মাকড়সা ১,Placeholder Spider 1,Genus species,Familyidae,assets/placeholders/arboretum/spider-1.svg,[BN] বিবরণ।,Placeholder English description.,[BN] মাঠ পর্যবেক্ষণ।,Placeholder field note.,2022-09-03,Hedge line,
