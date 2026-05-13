@@ -61,20 +61,23 @@ Each phase has a **Definition of Done (DoD)**. Do not advance until the current 
 
 ## Phase 2 — Content Schema and Sample Content
 
-- [ ] Define the Astro content collections matching `WEBSITE_PLAN.md` §4
-- [ ] Create the directory structure: `src/content/publications/`, `src/content/arboretum/`, `src/content/biography/`
-- [ ] Write the schema for each collection using Astro's content config
-- [ ] Hand-write 5 sample publication entries as Markdown files with frontmatter:
-  - [ ] 1 book (Bengali, agriculture)
-  - [ ] 1 book (English, nature)
-  - [ ] 1 newspaper article (Bengali, literature)
-  - [ ] 1 newspaper article (English, agriculture)
-  - [ ] 1 blog post (Bengali)
-- [ ] Hand-write 3 sample arboretum entries (one plant, one insect, one spider)
-- [ ] Hand-write the biography singleton entry
-- [ ] Verify that Astro's build succeeds and validates all sample content against the schema
+**Status (2026-05-13):** Complete. Schema is now sacred — changes require re-verifying Phase 3+.
 
-**DoD:** `npm run build` succeeds with zero errors. All sample content passes schema validation. Schema is documented in a `CONTENT_SCHEMA.md` file in the repository.
+- [x] Define the Astro content collections matching `WEBSITE_PLAN.md` §4 — `src/content.config.ts`
+- [x] Create the directory structure: `src/content/publications/`, `src/content/arboretum/`, `src/content/biography/`
+- [x] Write the schema for each collection using Astro's content config
+- [x] Hand-write 5 sample publication entries as Markdown files with frontmatter:
+  - [x] 1 book (Bengali, agriculture) — `book-agriculture-1.md`
+  - [x] 1 book (English, nature) — `book-nature-1.md`
+  - [x] 1 newspaper article (Bengali, literature) — `article-bn-literature-1.md`
+  - [x] 1 newspaper article (English, agriculture) — `article-en-agriculture-1.md`
+  - [x] 1 blog post (Bengali) — `blog-bn-1.md`
+- [x] Hand-write 3 sample arboretum entries (one plant, one insect, one spider) — `plant-1.md`, `insect-1.md`, `spider-1.md`
+- [x] Hand-write the biography singleton entry — `biography/roy.md`
+- [x] Verify that Astro's build succeeds and validates all sample content against the schema
+- [x] Document schema in `CONTENT_SCHEMA.md`
+
+**DoD:** `npm run build` succeeds with zero errors. All sample content passes schema validation. Schema is documented in a `CONTENT_SCHEMA.md` file in the repository. — *Met.*
 
 ---
 
