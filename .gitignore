@@ -22,5 +22,4 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
-inventory/book_cover_/01. Sabjeer Pokamakor-01.jpg
-*.jpg
+
