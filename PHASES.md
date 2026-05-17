@@ -195,7 +195,7 @@ Each phase has a **Definition of Done (DoD)**. Do not advance until the current 
 ## Phase 8 — Design System and Visual Styling
 *Only now does design enter. The functional site already works.*
 
-**Status (2026-05-13):** Complete (Phase 7 deferred). Design direction: **editorial herbarium** — a literary journal crossed with a 19th-century botanical field notebook. Warm aged-paper background, deep moss-green accent, hairline rules, hand-drawn leaf mark as signature flourish.
+**Status (2026-05-13):** Complete + deployed to GitHub Pages at https://royShidhartho.github.io/Mrityunjoy_Roy/. Phase 7 deferred until real content arrives. Design direction: **editorial herbarium** — a literary journal crossed with a 19th-century botanical field notebook. Warm aged-paper background, deep moss-green accent, hairline rules, hand-drawn leaf mark as signature flourish.
 
 - [x] Choose final typography — **Fraunces** (variable English serif, multiple optical sizes) + **Noto Serif Bengali**. No sans, no mono — all-serif for editorial cohesion. Locale-aware via CSS `:lang()`.
 - [x] Define color palette as CSS custom properties — warm paper (`#F4EFE4`), moss green (`#3F5C3A`), rust accent (`#8B3A22`). Auto dark mode via `prefers-color-scheme`.

@@ -2,11 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Session state — paused 2026-05-13
+
+Phases 0–6 and 8 are complete. Phase 7 (bulk migration) and parts of Phase 6 (OAuth proxy, father's invite) are deliberately deferred — they need real content and external service setup, not more code. The site is deployed to GitHub Pages at https://royShidhartho.github.io/Mrityunjoy_Roy/ and runs against placeholder content.
+
+**Resume points (in priority order):**
+
+1. **When the father delivers real metadata, scans, and photos** → run **Phase 7** (bulk content migration). Inventory CSV templates already scaffolded in `inventory/`. Migration script not yet written; spec is in `PHASES.md` Phase 7.
+2. **When ready to give the father CMS access** → set up GitHub OAuth proxy and invite him as a repo collaborator. Easiest path is a free Cloudflare Worker; details in `PHASES.md` Phase 6 → "Remaining".
+3. **Before a public launch** → Phase 9 (sitemap, OG meta, JSON-LD, analytics, RSS), Phase 10 (soft launch + feedback), Phase 11 (announcement + maintenance handoff).
+
+**Branch model:** `main` deploys via GitHub Actions. `sus_code_` is the stable working branch. Work happens on `sus_code_`, fast-forwards into `main` when a deploy is wanted.
+
+`PHASES.md` is the canonical status board with detailed per-phase checklists and DoD. Read it first on resume.
+
 ## Repository status
 
-This repository is **pre-implementation**. As of writing, it contains only `WEBSITE_PLAN.md` and `.gitattributes` — no Astro project, no `package.json`, no source code. `WEBSITE_PLAN.md` is the authoritative specification and should be treated as the single source of truth for what is being built and in what order.
-
-When implementation begins, the first task is Layer 1 in the plan (foundation: Astro scaffold, GitHub repo, Cloudflare Pages, domain). Do not skip ahead to design or styling work — see "Build philosophy" below.
+Functional bilingual archive site. Astro 6 + content collections (Markdown frontmatter) + Decap CMS + Pagefind search + GitHub Pages. `WEBSITE_PLAN.md` is still the authoritative spec for what is being built and why; `PHASES.md` tracks current state against that plan.
 
 ## What is being built
 

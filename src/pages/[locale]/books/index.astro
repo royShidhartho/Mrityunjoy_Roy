@@ -1,0 +1,211 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { languages, useTranslations, type Locale } from '../../../i18n/ui';
+import { getBooks } from '../../../data/books';
+
+export async function getStaticPaths() {
+  return Object.keys(languages).map((locale) => ({ params: { locale } }));
+}
+
+const locale = Astro.params.locale as Locale;
+const t = useTranslations(locale);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const books = getBooks();
+
+function assetUrl(src: string): string {
+  const parts = src.split('/').map((p) => encodeURIComponent(p)).join('/');
+  return `${base}/${parts}`;
+}
+---
+
+<BaseLayout title={t('books.title')}>
+  <section class="page-head">
+    <div class="container container-wide">
+      <p class="label reveal" data-delay="1">{locale === 'bn' ? 'প্রচ্ছদ সংগ্রহ' : 'Cover gallery'}</p>
+      <h1 class="page-head__title reveal" data-delay="2">{t('books.title')}</h1>
+      <p class="page-head__sub reveal" data-delay="3">
+        {books.length} {t('books.count')} · {t('books.subtitle')}
+      </p>
+    </div>
+  </section>
+
+  <aside class="page-note">
+    <div class="container container-wide">
+      <p class="page-note__body">
+        <span aria-hidden="true" class="page-note__mark">○</span>
+        {t('books.note')}
+      </p>
+    </div>
+  </aside>
+
+  <section class="gallery">
+    <div class="container container-wide">
+      <ul class="book-grid">
+        {books.map((b) => (
+          <li class="book">
+            <figure class="book__figure">
+              <span class="book__num label">{String(b.index).padStart(2, '0')}</span>
+              <img
+                src={assetUrl(b.src)}
+                alt={b.title_en}
+                loading="lazy"
+                decoding="async"
+              />
+            </figure>
+            <figcaption class="book__caption">
+              <span class="book__title">{b.title_en}</span>
+            </figcaption>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-head {
+    padding-block: var(--s-8) var(--s-5);
+  }
+  .page-head__title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 400;
+    margin-block: var(--s-3) var(--s-3);
+    line-height: 1;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+    letter-spacing: -0.02em;
+  }
+  :lang(bn) .page-head__title { font-size: clamp(2.25rem, 5.5vw, 3.5rem); }
+  .page-head__sub {
+    color: var(--ink-muted);
+    font-style: italic;
+  }
+  :lang(bn) .page-head__sub { font-style: normal; }
+
+  .page-note {
+    padding-block: var(--s-4);
+    border-top: 1px solid var(--rule);
+    background: color-mix(in oklab, var(--moss-tint) 35%, transparent);
+  }
+  .page-note__body {
+    max-width: 52rem;
+    color: var(--ink-soft);
+    font-size: var(--t-small);
+    font-style: italic;
+    display: flex;
+    gap: var(--s-3);
+    align-items: baseline;
+  }
+  :lang(bn) .page-note__body { font-style: normal; }
+  .page-note__mark {
+    color: var(--moss);
+    font-size: 0.6rem;
+  }
+
+  .gallery {
+    padding-block: var(--s-6) var(--s-9);
+  }
+
+  .book-grid {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: var(--s-7) var(--s-5);
+  }
+
+  .book {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+  }
+
+  .book__figure {
+    position: relative;
+    margin: 0;
+    aspect-ratio: 3 / 4;
+    background:
+      linear-gradient(135deg,
+        color-mix(in oklab, var(--ground-deep) 80%, transparent) 0%,
+        color-mix(in oklab, var(--moss-tint) 45%, transparent) 100%);
+    border: 1px solid var(--rule);
+    border-radius: var(--r);
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.05),
+      0 16px 32px -20px color-mix(in oklab, var(--ink) 25%, transparent);
+    transition:
+      transform var(--dur) var(--ease),
+      box-shadow var(--dur) var(--ease),
+      border-color var(--dur) var(--ease);
+  }
+  .book__figure::after {
+    /* hint of a book spine on the inside left edge */
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 6px;
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--ink) 18%, transparent),
+      transparent
+    );
+    pointer-events: none;
+  }
+  .book:hover .book__figure {
+    transform: translateY(-3px);
+    border-color: var(--moss);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.06),
+      0 22px 40px -22px color-mix(in oklab, var(--moss) 45%, transparent);
+  }
+
+  .book__figure img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+  .book:hover .book__figure img { transform: scale(1.02); }
+
+  .book__num {
+    position: absolute;
+    top: var(--s-2);
+    inset-inline-end: var(--s-2);
+    z-index: 2;
+    background: color-mix(in oklab, var(--ground) 88%, transparent);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: var(--ink-soft);
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.625rem;
+  }
+  :lang(bn) .book__num { font-size: var(--t-mini); letter-spacing: 0; text-transform: none; }
+
+  .book__caption {
+    text-align: center;
+    padding-inline: var(--s-2);
+  }
+  .book__title {
+    font-size: var(--t-small);
+    color: var(--ink);
+    line-height: 1.35;
+    font-variation-settings: "opsz" 18;
+    text-wrap: balance;
+    display: inline-block;
+  }
+  .book:hover .book__title { color: var(--moss); }
+
+  @media (max-width: 520px) {
+    .book-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s-5) var(--s-4);
+    }
+    .book__title { font-size: var(--t-mini); }
+  }
+</style>
